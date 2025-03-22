@@ -61,7 +61,7 @@ Each packet consists of the following fields, which must be encoded in the speci
 ### CRC
 
 - **Size**: 2 bytes
-- **Description**: Cyclic redundancy check value computed over all preceding fields (excluding the termination byte).
+- **Description**: Cyclic redundancy check value computed over all preceding fields (excluding the termination byte). The generator polynomial used by the protocol is [CRC-16/OPENSAFETY-B](https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b), or `0xbaad` in Koopman's notation.
 
 ### Termination Byte
 
