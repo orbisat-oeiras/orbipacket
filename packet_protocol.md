@@ -1,8 +1,8 @@
-# OrbiPacket Protocol Specification - V1.0.0
+# OrbiPacket Protocol Specification - V1.1.0
 
 ## Introduction
 
-The current document presents the technical specification for the packet-based communication protocol designed for interaction with CanSat's. The current version of this protocol (1.0.0) was developed by OrbiSat Oeiras during the 12th edition of CanSat Portugal.
+The current document presents the technical specification for the packet-based communication protocol designed for interaction with CanSat's. The current version of this protocol (1.1.0) was developed by OrbiSat Oeiras during the 12th edition of CanSat Portugal.
 
 ![Diagram representing the protocol](protocol_diagram.svg)
 
@@ -36,7 +36,7 @@ Each packet consists of the following fields, which must be encoded in the speci
 #### Version
 - **Size**: 1 byte
 - **Description**: Indicates the protocol version. Breaking updates to the protocol increment this field to ensure backwards compatibility.
-- **Value**: the current version of the protocol (1.0.0) specifies `0x01` as the version byte.
+- **Value**: the current version of the protocol (1.1.0) specifies `0x01` as the version byte.
 
 #### Length
 - **Size**: 1 byte
@@ -68,6 +68,10 @@ Each packet consists of the following fields, which must be encoded in the speci
 - **Size**: 1 byte
 - **Description**: Marks the end of the packet, ensuring clear packet delimitation.
 - **Value**: Fixed at `0x00`
+
+## Field Order and Endianness
+
+Packet fields must be encoded in the specified order, as a byte string. Multi-byte fields are encoded in **little-endian**.
 
 ## Encoding
 
@@ -104,7 +108,7 @@ No version negotiation strategy is enforced by the packed in the event of commun
 
 | Field           | Example Value                | Notes                     |
 | --------------- | ---------------------------- | ------------------------- |
-| **Version**     | `0x01`                       | Protocol version 1.0.0    |
+| **Version**     | `0x01`                       | Protocol version 1.1.0    |
 | **Length**      | `0x04`                       | Payload size: 4 bytes     |
 | **Control**     | `0x81`                       | Telecommand, Device ID 1  |
 | **Timestamp**   | `0x000001787ABCEF0123456789` | Example timestamp         |
