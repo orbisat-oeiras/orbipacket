@@ -1,8 +1,8 @@
-# OrbiPacket Protocol Specification - V1.1.0
+# OrbiPacket Protocol Specification - V1.2.0
 
 ## Introduction
 
-The current document presents the technical specification for the packet-based communication protocol designed for interaction with CanSat's. The current version of this protocol (1.1.0) was developed by OrbiSat Oeiras during the 12th edition of CanSat Portugal.
+The current document presents the technical specification for the packet-based communication protocol designed for interaction with CanSat's. The current version of this protocol (1.2.0) was developed by OrbiSat Oeiras during the 12th edition of CanSat Portugal.
 
 ![Diagram representing the protocol](protocol_diagram.svg)
 
@@ -36,7 +36,7 @@ Each packet consists of the following fields, which must be encoded in the speci
 #### Version
 - **Size**: 1 byte
 - **Description**: Indicates the protocol version. Breaking updates to the protocol increment this field to ensure backwards compatibility.
-- **Value**: the current version of the protocol (1.1.0) specifies `0x01` as the version byte.
+- **Value**: the current version of the protocol (1.2.0) specifies `0x01` as the version byte.
 
 #### Length
 - **Size**: 1 byte
@@ -44,7 +44,7 @@ Each packet consists of the following fields, which must be encoded in the speci
 
 #### Control
 - **Size**: 1 byte
-- **Description**: Encodes metadata about the packet type and device identifier.
+- **Description**: Encodes metadata about the packet type and device identifier. The following fields are specified from the highest bit to the lowest bit.
   - **TM/TC Flag**: 1 bit, where `0` indicates telemetry and `1` indicates a telecommand.
   - **Device ID**: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
   - **Reserved Bits**: 2 bits, reserved for future use. The value of this field should be ignored.
@@ -108,7 +108,7 @@ No version negotiation strategy is enforced by the packed in the event of commun
 
 | Field           | Example Value                | Notes                     |
 | --------------- | ---------------------------- | ------------------------- |
-| **Version**     | `0x01`                       | Protocol version 1.1.0    |
+| **Version**     | `0x01`                       | Protocol version 1.2.0    |
 | **Length**      | `0x04`                       | Payload size: 4 bytes     |
 | **Control**     | `0x81`                       | Telecommand, Device ID 1  |
 | **Timestamp**   | `0x000001787ABCEF0123456789` | Example timestamp         |
