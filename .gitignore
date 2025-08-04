@@ -1,2 +1,8 @@
 .vscode/
+# LaTeX build artifacts
 *.pdf
+*.log
+*.aux
+*.out
+*.toc
+*.synctex.gz
