@@ -7,6 +7,8 @@
 \usepackage[colorlinks,pdfstartview=FitH,bookmarks,pdfcenterwindow]{hyperref}
 \usepackage[capitalise]{cleveref}
 
+\usepackage{protocol_version}
+
 \makeatletter
 
 \def\@autolabel#1{%
@@ -24,7 +26,7 @@
 
 \makeatother
 
-\title{OrbiPacket Protocol Specification - v1.2.0}
+\title{OrbiPacket Protocol Specification - v\version}
 \author{The OrbiSat Oeiras Team}
 
 \begin{document}
@@ -71,7 +73,7 @@ Each packet consists of the following fields, which must be encoded in the speci
 \begin{itemize}
   \item \textbf{Size}: 1 byte
   \item \textbf{Description}: Indicates the protocol version. Breaking updates to the protocol increment this field to ensure backwards compatibility.
-  \item \textbf{Value}: the current version of the protocol (1.2.0) specifies \texttt{0x01} as the version byte.
+  \item \textbf{Value}: the current version of the protocol (\version) specifies \texttt{0x\versionbyte} as the version byte.
 \end{itemize}
 
 \subsubsection{Length}
@@ -167,7 +169,7 @@ No version negotiation strategy is enforced by the packed in the event of commun
     \toprule
     Field                & Example Value                       & Notes                     \\
     \midrule
-    \textbf{Version}     & \texttt{0x01}                       & Protocol version 1.2.0    \\
+    \textbf{Version}     & \texttt{0x\versionbyte}             & Protocol version \version \\
     \textbf{Length}      & \texttt{0x04}                       & Payload size: 4 bytes     \\
     \textbf{Control}     & \texttt{0x81}                       & Telecommand, Device ID 1  \\
     \textbf{Timestamp}   & \texttt{0x000001787ABCEF0123456789} & Example timestamp         \\
