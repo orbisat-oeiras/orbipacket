@@ -31,12 +31,15 @@ jobs:
             - name: Compile LaTeX
               uses: ./.github/actions/compile
 
+            - name: Move PDFs to Folder
+              run: |
+                  mkdir build
+                  mv *.pdf build/
+
             - name: Upload Artifact
               uses: actions/upload-pages-artifact@v3
               with:
-                  path: |
-                      spec.pdf
-                      diagram.pdf
+                  path: ./build/
 
             - name: Deploy
               id: deployment
