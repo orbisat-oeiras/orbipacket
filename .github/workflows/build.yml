@@ -1,0 +1,23 @@
+name: Build LaTeX
+
+on:
+    pull_request:
+    workflow_call:
+
+jobs:
+    build_pdfs:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+
+            - name: Compile LaTeX
+              uses: ./.github/actions/compile
+
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: orbipacket-pdfs
+                  path: |
+                      spec.pdf
+                      diagram.pdf
