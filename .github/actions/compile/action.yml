@@ -1,0 +1,12 @@
+name: Compile LaTeX files
+description: Compile LaTeX sources into PDFs
+
+runs:
+    using: composite
+    steps:
+        - name: Compile LaTeX files
+          uses: xu-cheng/latex-action@v4
+          with:
+              root_file: |
+                  spec.tex
+                  diagram.tex
