@@ -181,7 +181,7 @@ Packet fields must be encoded in the specified order, as a byte string. Multi-by
 
 \section[stuff]{Stuffing}
 
-To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself, simplifying parsing and improving error resilience.
+To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, which would lead to framing errors, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself.
 
 \section[ops]{Packet Operations}
 
