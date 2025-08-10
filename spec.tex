@@ -97,18 +97,18 @@ Each packet consists of the following fields, which must be encoded in the speci
 
 \begin{table}[h]
   \centering
-  \begin{tabular}{lll}
+  \begin{tabular}{ll}
     \toprule
-    Field                     & Size (bytes) & Description                                                     \\
+    Field                     & Size (bytes) \\
     \midrule
-    \textbf{Header}           & 11           & Contains metadata for packet processing.                        \\
-    Version                   & 1            & Protocol version for compatibility management.                  \\
-    Length                    & 1            & Size of the payload in bytes.                                   \\
-    Control                   & 1            & Encodes packet type and device ID.                              \\
-    Timestamp                 & 8            & Time since Unix epoch in nanoseconds (64-bit unsigned integer). \\
-    \textbf{Payload}          & 0-255        & Application-specific data.                                      \\
-    \textbf{CRC}              & 2            & Cyclic redundancy check for error detection.                    \\
-    \textbf{Termination Byte} & 1            & A fixed value (`0x00`) marking the end of the packet.           \\
+    \textbf{Header}           & 11           \\
+    Version                   & 1            \\
+    Length                    & 1            \\
+    Control                   & 1            \\
+    Timestamp                 & 8            \\
+    \textbf{Payload}          & 0-255        \\
+    \textbf{CRC}              & 2            \\
+    \textbf{Termination Byte} & 1            \\
     \bottomrule
   \end{tabular}
   \caption{Packet structure overview}
