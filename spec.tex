@@ -169,7 +169,7 @@ Contains application-specific data, such as telemetry readings or command instru
 
 \subsection[f:crc]{CRC}
 \fieldsize{2 bytes}\\[8pt]
-Cyclic redundancy check value computed over all preceding fields (excluding the termination byte). The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation.
+Cyclic redundancy check value computed over all preceding fields. The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation.
 
 
 \subsection[f:term]{Termination Byte}
