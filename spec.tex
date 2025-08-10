@@ -1,7 +1,7 @@
 \documentclass[a4paper,11pt,english]{article}
 \usepackage{standalone}
 \usepackage{tikz}
-\usetikzlibrary{decorations.pathreplacing,arrows.meta}
+\usetikzlibrary{decorations.pathreplacing,arrows.meta,shapes}
 \usepackage{tcolorbox}
 \tcbuselibrary{breakable,skins}
 \usepackage{babel}
@@ -74,6 +74,22 @@
   \end{admobox}
 }
 
+\def\fieldsize#1{
+  \tikz[baseline=-.5ex]{
+    \tikzset{fieldsize/.style={
+      rectangle split,
+      rectangle split parts=2,
+      rectangle split horizontal,
+      rectangle split part fill={violet,violet!10},
+      rectangle split draw splits=false,
+      rounded corners=2pt,
+      rectangle split part align=base,
+      draw=violet,
+    }}
+    \node[fieldsize] (var) {\textsc{\color{white}Size}\nodepart[text=violet!50!black]{two}#1};
+  }
+}
+
 \title{OrbiPacket Protocol Specification - v\version}
 \author{The OrbiSat Oeiras Team}
 \date{}
@@ -118,53 +134,44 @@ Each packet consists of the following fields, which must be encoded in the speci
 \subsection{Header}
 
 \subsubsection{Version}
-\begin{itemize}
-  \item \textbf{Size}: 1 byte
-  \item \textbf{Description}: Indicates the protocol version. Breaking updates to the protocol increment this field to ensure backwards compatibility.
-  \item \textbf{Value}: the current version of the protocol (\version) specifies \texttt{0x\versionbyte} as the version byte.
-\end{itemize}
+\fieldsize{1 byte}\\[8pt]
+Indicates the protocol version. Breaking updates to the protocol increment this field to ensure backwards compatibility. The current version of the protocol (\version) specifies \texttt{0x\versionbyte} as the version byte.
+
 
 \subsubsection{Length}
-\begin{itemize}
-  \item \textbf{Size}: 1 byte
-  \item \textbf{Description}: Specifies the size of the payload in bytes, ranging from 0 to 255.
-\end{itemize}
+\fieldsize{1 byte}\\[8pt]
+Specifies the size of the payload in bytes, ranging from 0 to 255.
+
 
 \subsubsection{Control}
+\fieldsize{1 byte}\\[8pt]
+Encodes metadata about the packet type and device identifier. The following fields are specified from the highest bit to the lowest bit.
 \begin{itemize}
-  \item \textbf{Size}: 1 byte
-  \item \textbf{Description}: Encodes metadata about the packet type and device identifier. The following fields are specified from the highest bit to the lowest bit.
-        \begin{itemize}
-          \item \textbf{TM/TC Flag}: 1 bit, where \texttt{0} indicates telemetry and \texttt{1} indicates a telecommand.
-          \item \textbf{Device ID}: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
-          \item \textbf{Reserved Bits}: 2 bits, reserved for future use. The value of this field should be ignored.
-        \end{itemize}
+  \item \textbf{TM/TC Flag}: 1 bit, where \texttt{0} indicates telemetry and \texttt{1} indicates a telecommand.
+  \item \textbf{Device ID}: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
+  \item \textbf{Reserved Bits}: 2 bits, reserved for future use. The value of this field should be ignored.
 \end{itemize}
+
 
 \subsubsection{Timestamp}
-\begin{itemize}
-  \item \textbf{Size}: 8 bytes
-  \item \textbf{Description}: Represents the time since the Unix epoch in nanoseconds as a 64-bit unsigned integer.
-\end{itemize}
+\fieldsize{8 bytes}\\[8pt]
+Represents the time since the Unix epoch in nanoseconds as a 64-bit unsigned integer.
+
 
 \subsection{Payload}
-\begin{itemize}
-  \item \textbf{Size}: 0–255 bytes
-  \item \textbf{Description}: Contains application-specific data, such as telemetry readings or command instructions. The structure of the payload is currently up to the application, but that may be subject to change in future versions.
-\end{itemize}
+\fieldsize{0–255 bytes}\\[8pt]
+Contains application-specific data, such as telemetry readings or command instructions. The structure of the payload is currently up to the application, but that may be subject to change in future versions.
+
 
 \subsection{CRC}
-\begin{itemize}
-  \item \textbf{Size}: 2 bytes
-  \item \textbf{Description}: Cyclic redundancy check value computed over all preceding fields (excluding the termination byte). The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation.
-\end{itemize}
+\fieldsize{2 bytes}\\[8pt]
+Cyclic redundancy check value computed over all preceding fields (excluding the termination byte). The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation.
+
 
 \subsection{Termination Byte}
-\begin{itemize}
-  \item \textbf{Size}: 1 byte
-  \item \textbf{Description}: Marks the end of the packet, ensuring clear packet delimitation.
-  \item \textbf{Value}: Fixed at \texttt{0x00}
-\end{itemize}
+\fieldsize{1 byte}\\[8pt]
+Marks the end of the packet, ensuring clear packet delimitation. Fixed at \texttt{0x00}.
+
 
 \section{Field Order and Endianness}
 
