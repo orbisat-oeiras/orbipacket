@@ -179,9 +179,9 @@ Inserted at the end of every packet to frame it, i.e, delimit it from adjacent p
 
 Packet fields must be encoded in the specified order, as a byte string. Multi-byte fields are encoded in \textbf{little-endian}.
 
-\section[enc]{Encoding}
+\section[stuff]{Stuffing}
 
-To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)} encoding. This encoding is applied to all fields except the termination byte itself, simplifying parsing and improving error resilience.
+To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself, simplifying parsing and improving error resilience.
 
 \section[ops]{Packet Operations}
 
@@ -189,7 +189,7 @@ To prevent the occurrence of the termination byte (\texttt{0x00}) within the pac
 \begin{itemize}
   \item Packet fields, excluding the CRC and termination bytes, are converted into binary and chained together in the specified order.
   \item A CRC is computed over the resulting binary string, and appended to it.
-  \item COBS encoding is applied to the entire binary string, and the termination byte is appended to it, concluding packet creation.
+  \item COBS stuffing is applied to the entire binary string, and the termination byte is appended to it, concluding packet creation.
 \end{itemize}
 
 \subsection[op:tx]{Transmission}
@@ -241,7 +241,7 @@ No version negotiation strategy is enforced by the packed in the event of commun
 
 \section[overhead]{Packet Overhead}
 
-The fixed fields (header and CRC) result in a total, unencoded overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS encoding has a maximum overhead of 1 byte per 254 bytes of unencoded data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
+The fixed fields (header and CRC) result in a total, unstuffed overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
 
 \section[impl]{Implementation Guidelines}
 
@@ -267,6 +267,6 @@ The generator polynomial used by the protocol is \href{https://reveng.sourceforg
 \end{itemize}
 
 \subsection[i:cobs]{COBS}
-Reference implementations of the COBS algorithm should be used whenever possible. Otherwise, refer to the literature for details on the encoding and decoding process. The packet data should be stuffed to remove the termination byte, that is, \texttt{0x00}.
+Reference implementations of the COBS algorithm should be used whenever possible. Otherwise, refer to the literature for details on the stuffing and unstuffing process. The packet data should be stuffed to remove the termination byte, that is, \texttt{0x00}.
 
 \end{document}
