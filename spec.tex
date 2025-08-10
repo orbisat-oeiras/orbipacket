@@ -172,7 +172,7 @@ Cyclic redundancy check value computed over all preceding fields (excluding the 
 
 \subsection[f:term]{Termination Byte}
 \fieldsize{1 byte}\\[8pt]
-Marks the end of the packet, ensuring clear packet delimitation. Fixed at \texttt{0x00}.
+Inserted at the end of every packet to frame it, i.e, delimit it from adjacent packets. Fixed at \texttt{0x00}.
 
 
 \section[endianness]{Field Order and Endianness}
