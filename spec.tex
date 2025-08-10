@@ -2,12 +2,31 @@
 \usepackage{standalone}
 \usepackage{tikz}
 \usetikzlibrary{decorations.pathreplacing,arrows.meta}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
 \usepackage{babel}
 \usepackage{booktabs}
 \usepackage[colorlinks,pdfstartview=FitH,bookmarks,pdfcenterwindow]{hyperref}
 \usepackage[capitalise]{cleveref}
 
 \usepackage{protocol_version}
+
+\definecolor{base03}{RGB}{000, 043, 054}
+\definecolor{base02}{RGB}{007, 054, 066}
+\definecolor{base01}{RGB}{088, 110, 117}
+\definecolor{base00}{RGB}{101, 123, 131}
+\definecolor{base0}{RGB}{131, 148, 150}
+\definecolor{base1}{RGB}{147, 161, 161}
+\definecolor{base2}{RGB}{238, 232, 213}
+\definecolor{base3}{RGB}{253, 246, 227}
+\definecolor{yellow}{RGB}{181, 137, 000}
+\definecolor{orange}{RGB}{203, 075, 022}
+\definecolor{red}{RGB}{220, 050, 047}
+\definecolor{magenta}{RGB}{211, 054, 130}
+\definecolor{violet}{RGB}{108, 113, 196}
+\definecolor{blue}{RGB}{038, 139, 210}
+\definecolor{cyan}{RGB}{042, 161, 152}
+\definecolor{green}{RGB}{133, 153, 000}
 
 \makeatletter
 
@@ -26,6 +45,35 @@
 
 \makeatother
 
+\newtcolorbox{admobox}[3][]{
+  breakable, skin=enhancedmiddle,
+  boxrule=0mm, leftrule=2mm,
+  colframe=#3, colback=#3!10, coltext=#3!30!black,
+  title={#2}, attach title to upper, after title={.\ },
+  fonttitle={\bfseries}, coltitle=black,
+  #1
+}
+\def\notebox#1#2{
+  \begin{admobox}{#1}{blue}
+  #2
+  \end{admobox}
+}
+\def\warnbox#1#2{
+  \begin{admobox}{#1}{yellow}
+  #2
+  \end{admobox}
+}
+\def\errorbox#1#2{
+  \begin{admobox}{#1}{red}
+  #2
+  \end{admobox}
+}
+\def\tipbox#1#2{
+  \begin{admobox}{#1}{green}
+  #2
+  \end{admobox}
+}
+
 \title{OrbiPacket Protocol Specification - v\version}
 \author{The OrbiSat Oeiras Team}
 \date{}
@@ -38,9 +86,9 @@
 
 OrbiPacket is a packet-based communication protocol. It was created specifically for communication with CanSat devices. These devices can be fitted with very diverse electronics, and are often resource-constrained. Thus, this protocol has the goals of being simple and easy to use while providing decent efficiency and minimal overhead.
 
-\textit{\textbf{A bit of history.} The OrbiSat Oeiras team first participated in the CanSat Portugal competition in 2023/2024, being one of the finalists of the 11th edition. Several issues on all fronts meant no data was received during the CanSat's descent. The next year, wanting to get everything right, the team's firmware developer (aka me, Levi Gomes) decided sending data over text wasn't neither efficient nor rigorous enough. So, after some effort, the first version of OrbiPacket was born during the 12th edition of the competition, in 2024/2025. And in case you're curious... no, we still didn't get any data.}
-
-\input{diagram.tex}
+\notebox{A bit of history}{
+  The OrbiSat Oeiras team first participated in the CanSat Portugal competition in 2023/2024, being one of the finalists of the 11th edition. Several issues on all fronts meant no data was received during the CanSat's descent. The next year, wanting to get everything right, the team's firmware developer (aka me, Levi Gomes) decided sending data over text wasn't neither efficient nor rigorous enough. So, after some effort, the first version of OrbiPacket was born during the 12th edition of the competition, in 2024/2025. And in case you're curious... no, we still didn't get any data.
+}
 
 \section{Packet Structure}
 
