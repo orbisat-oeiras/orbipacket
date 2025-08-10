@@ -151,8 +151,10 @@ Encodes metadata about the packet type and device identifier. The following fiel
 \begin{itemize}
   \item \textbf{TM/TC Flag}: 1 bit, where \texttt{0} indicates telemetry and \texttt{1} indicates a telecommand.
   \item \textbf{Device ID}: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
-  \item \textbf{Reserved Bits}: 2 bits, reserved for future use. The value of this field should be ignored.
 \end{itemize}
+\warnbox{Reserved bits}{
+  The two remaining bits of the control byte are currently unused. Future versions of the protocol may use them to include additional information. They must therefore be ignored -- do not use them to encode application specific data.
+}
 
 
 \subsubsection[f:timestamp]{Timestamp}
