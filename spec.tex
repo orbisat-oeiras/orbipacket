@@ -124,7 +124,7 @@ It is important to note that devices are more than a formalism. Each packet cont
 
 \section[fields]{Packet Structure}
 
-Each packet consists of the following fields, which must be encoded in the specified order:
+A packet is made up of several \textit{fields}. \Cref{table:struct} shows an overview of the packet structure. The fields before the payload are called the \textbf{header}, they contain metadata about the packet.
 
 \begin{table}[h]
   \centering
