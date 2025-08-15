@@ -168,6 +168,13 @@ Encodes metadata about the packet type and device identifier. The following fiel
 \warnbox{Reserved bits}{
   The two remaining bits of the control byte are currently unused. Future versions of the protocol may use them to include additional information. They must therefore be ignored -- do not use them to encode application specific data.
 }
+\tipbox{Interpreting the control byte}{
+  One can think of the control byte as \textit{saying} the following about the packet:
+  \begin{itemize}
+    \item \texttt{0b0dddddrr}: TM packet from device \texttt{0bddddd} to the groundstation
+    \item \texttt{0b1dddddrr}: TC packet from the groundstation to device \texttt{0bddddd}
+  \end{itemize}
+}
 
 
 \subsubsection[f:timestamp]{Timestamp}
