@@ -124,7 +124,7 @@ It is important to note that devices are more than a formalism. Each packet cont
 
 \section[fields]{Packet Structure}
 
-A packet is made up of several \textit{fields}. \Cref{table:struct} shows an overview of the packet structure. The fields before the payload are called the \textbf{header}, they contain metadata about the packet.
+A packet is made up of several \textit{fields}. \Cref{table:struct} shows an overview of the packet structure. The fields before the payload are called the \textbf{header}, they contain metadata about the packet. When encoding a packet, fields must be concatenated in order. Fields which span multiple bytes are to be encoded in \textbf{little endian}, i.e., least-significant byte first.
 
 \begin{table}[h]
   \centering
@@ -188,11 +188,6 @@ Cyclic redundancy check value computed over all preceding fields. The generator 
 \subsection[f:term]{Termination Byte}
 \fieldsize{1 byte}\\[8pt]
 Inserted at the end of every packet to frame it, i.e, delimit it from adjacent packets. Fixed at \texttt{0x00}.
-
-
-\section[endianness]{Field Order and Endianness}
-
-Packet fields must be encoded in the specified order, as a byte string. Multi-byte fields are encoded in \textbf{little-endian}.
 
 \section[stuff]{Stuffing}
 
