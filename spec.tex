@@ -109,6 +109,19 @@ OrbiPacket is a packet-based communication protocol. It was created specifically
   The OrbiSat Oeiras team first participated in the CanSat Portugal competition in 2023/2024, being one of the finalists of the 11th edition. Several issues on all fronts meant no data was received during the CanSat's descent. The next year, wanting to get everything right, the team's firmware developer (aka me, Levi Gomes) decided sending data over text was neither efficient nor rigorous enough. So, after some effort, the first version of OrbiPacket was born during the 12th edition of the competition, in 2024/2025. And in case you're curious... no, we still didn't get any data.
 }
 
+\section[overview]{Protocol Overview}
+The OrbiPacket protocol enables communication between a CanSat and one or more groundstations. This communication is carried out by exchanging \textbf{packets}, the basic units of the protocol. Packets are autonomous entities, which have a logical, high-level structure. These packets can be converted into raw bytes -- a process known as \textbf{encoding} -- adequate for transmission over a physical layer\footnotemark (e.g. radio). At the other end of the link, the received bytes can then be \textbf{decoded} back into packets.
+
+\footnotetext{In this specification, the designation \textit{physical layer} is used very liberally, referring to any layers responsible for transmitting raw bytes. In that sense, the physical layer refers to the set of all layers below OrbiPacket -- which might be a single layer or multiple layers.}
+
+For communication to be possible, messages aren't enough -- one also requires \textit{communicators}. In OrbiPacket, these communicators are referred to as \textbf{devices}. A device is any discrete entity capable of sending and receiving packets. Note that OrbiPacket devices don't need to correspond to physical devices. In fact, a single piece of hardware can act as several devices, or, conversely, many components can come together under one device.
+
+The protocol distinguishes between two types of packets: \textbf{telemetry} (TM) and \textbf{telecommand} (TC). The former represent data being sent \textit{from} a device, whereas the latter encodes instructions sent \textit{to} a device.
+
+As an example, consider a temperature sensor which is able to send readings and receive a command to alter the frequency of said readings. The readings will be wrapped in TM packets, while the command will be a TC packet. Since the sensor is able to send and receive packets, it is considered a device.
+
+It is important to note that devices are more than a formalism. Each packet contains information about the device it relates to (i.e. the sender for TM packets and the receiver for TC packets), in the form of a \textbf{device identifier} (ID). The ID is a 5-bit number uniquely identifying a device in the CanSat.
+
 \section[fields]{Packet Structure}
 
 Each packet consists of the following fields, which must be encoded in the specified order:
