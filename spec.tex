@@ -128,18 +128,17 @@ A packet is made up of several \textit{fields}. \Cref{table:struct} shows an ove
 
 \begin{table}[h]
   \centering
-  \begin{tabular}{ll}
+  \begin{tabular}{lr}
     \toprule
-    Field                     & Size (bytes) \\
+    Field            & Size (bytes) \\
     \midrule
-    \textbf{Header}           & 11           \\
-    Version                   & 1            \\
-    Length                    & 1            \\
-    Control                   & 1            \\
-    Timestamp                 & 8            \\
-    \textbf{Payload}          & 0-255        \\
-    \textbf{CRC}              & 2            \\
-    \textbf{Termination Byte} & 1            \\
+    Version          & 1            \\
+    Length           & 1            \\
+    Control          & 1            \\
+    Timestamp        & 8            \\
+    Payload          & 0-255        \\
+    CRC              & 2            \\
+    Termination Byte & 1            \\
     \bottomrule
   \end{tabular}
   \caption{Packet structure overview}
