@@ -4,6 +4,8 @@
 \usetikzlibrary{decorations.pathreplacing,arrows.meta,shapes}
 \usepackage{tcolorbox}
 \tcbuselibrary{breakable,skins}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{babel}
 \usepackage{booktabs}
 \usepackage[colorlinks,pdfstartview=FitH,bookmarks,pdfcenterwindow]{hyperref}
@@ -89,6 +91,16 @@
     \node[fieldsize] (var) {\textsc{\color{white}Size}\nodepart[text=violet!50!black]{two}#1};
   }
 }
+
+\floatname{algorithm}{Listing}
+\renewcommand{\listalgorithmname}{List of Listings}
+\crefname{algorithm}{Listing}{Listings}
+
+\algnewcommand\texttype{\textsc}
+\algnewcommand\algorithmicstruct{\textbf{struct}}
+\algdef{SE}[STRUCT]{Struct}{EndStruct}[1]{\algorithmicstruct\ \texttype{#1}}{\algorithmicend\ \algorithmicstruct}
+\def\t#1:#2;{\ensuremath{#1}\ :\ #2}
+\def\T{\State\t}
 
 \title{OrbiPacket Protocol Specification - v\version}
 \author{The OrbiSat Oeiras Team}
@@ -194,6 +206,24 @@ Cyclic redundancy check value computed over all preceding fields. The generator 
 \subsection[f:term]{Termination Byte}
 \fieldsize{1 byte}\\[8pt]
 Inserted at the end of every packet to frame it, i.e, delimit it from adjacent packets. Fixed at \texttt{0x00}.
+
+\subsection[repr]{Representation}
+In their unencoded form, packets should be represented by a high-level construct. The specifics of this will invariably depend on the concrete language. Nonetheless, the recommended way of representing packets is through the use of a custom data type or object.
+
+In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Notice the CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible due to language-specific constraints, it must be included in the packet representation.
+
+\begin{algorithm}[h]
+  \caption{Packet Representation}\label{listing:struct}
+  \begin{algorithmic}[1]
+    \Struct{Packet}
+    \T version:uint8;
+    \T kind:TM or TC;
+    \T deviceId:uint8;
+    \T timestamp:uint64;
+    \T payload:uint8[];
+    \EndStruct
+  \end{algorithmic}
+\end{algorithm}
 
 \section[stuff]{Stuffing}
 
