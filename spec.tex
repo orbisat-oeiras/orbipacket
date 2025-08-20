@@ -128,7 +128,7 @@ The OrbiPacket protocol enables communication between a CanSat and one or more g
 
 For communication to be possible, messages aren't enough -- one also requires \textit{communicators}. In OrbiPacket, these communicators are referred to as \textbf{devices}. A device is any discrete entity capable of sending and receiving packets. Note that OrbiPacket devices don't need to correspond to physical devices. In fact, a single piece of hardware can act as several devices, or, conversely, many components can come together under one device.
 
-The protocol distinguishes between two types of packets: \textbf{telemetry} (TM) and \textbf{telecommand} (TC). The former represent data being sent \textit{from} a device, whereas the latter encodes instructions sent \textit{to} a device.
+The protocol distinguishes between two kinds of packets: \textbf{telemetry} (TM) and \textbf{telecommand} (TC). The former represent data being sent \textit{from} a device, whereas the latter encodes instructions sent \textit{to} a device.
 
 As an example, consider a temperature sensor which is able to send readings and receive a command to alter the frequency of said readings. The readings will be wrapped in TM packets, while the command will be a TC packet. Since the sensor is able to send and receive packets, it is considered a device.
 
@@ -171,7 +171,7 @@ Specifies the size of the payload in bytes, ranging from 0 to 255.
 
 \subsubsection[f:control]{Control}
 \fieldsize{1 byte}\\[8pt]
-Encodes metadata about the packet type and device identifier. The following fields are specified from the highest bit to the lowest bit.
+Encodes metadata about the packet kind and device identifier. The following fields are specified from the highest bit to the lowest bit.
 \begin{itemize}
   \item \textbf{TM/TC Flag}: 1 bit, where \texttt{0} indicates telemetry and \texttt{1} indicates a telecommand.
   \item \textbf{Device ID}: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
