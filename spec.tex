@@ -225,6 +225,32 @@ In the following sections, the pseudo-code data type defined in \cref{listing:st
   \end{algorithmic}
 \end{algorithm}
 
+\subsection[payload-enc]{Payload Storage}
+A payload can contain arbitrary data -- as long as it doesn't surpass the 255 byte limit. This data could assume many forms, and thus be of many different data types, which all have to somehow be stored by the same representation.
+
+Perhaps the most obvious solution for many would be the use of a generic type (or a type template, or whichever other name such a construct might have). Thus the representation presented in \cref{listing:struct} would become something like \cref{listing:struct-generic}. While it might seem good at first, this solution presents two major drawbacks. Firstly, there are languages that don't support generics. Out of those that do, not all provide a mechanism to restrict the generic argument based on its size, so payloads over 255 bytes would only be detected when attempting to encode them. Furthermore, generics tend to \textit{pollute} APIs -- if packets were generic, any function or type interacting with them would also have to be generic. Because of these downsides, this solution is deemed unfitting.
+
+\begin{algorithm}[h]
+  \caption{A generic packet}\label{listing:struct-generic}
+  \begin{algorithmic}[1]
+    \Struct{Packet<P>}
+    \T version:uint8;
+    \T kind:TM or TC;
+    \T deviceId:uint8;
+    \T timestamp:uint64;
+    \T payload:P;
+    \EndStruct
+  \end{algorithmic}
+\end{algorithm}
+
+Another possibility would be to use a \textit{universal} type\footnotemark\ which can hold anything. Once again, this approach has the issue of not being able to reject payloads larger than 255 bytes when they're created. On top of that, universal types are usually unsafe to handle, since all type information is lost.
+
+\footnotetext{This is known by many names. In type theory, it's often referred to as \textit{top} or \textit{any}; object oriented languages usually call it \textit{object}.}
+
+The third option, and the one currently chosen by OrbiPacket, is to store the raw bytes of the payload in the packet representation, as a byte array. This way, any form of data can be stored -- and by using fixed-size arrays, a payload larger than 255 bytes can't ever be created. In effect, this solution offsets the conversion of a payload to its bytes from the time of packet encoding to the time of packet creation. However, this doesn't mean the end-user should be responsible for performing the conversion -- that would be potentially unsafe.\footnotemark\ Instead, an implementation should provide an API to create payloads out of common data types.
+
+\footnotetext{For instance, an end-user could mistakenly provide the bytes in big-endian.}
+
 \section[stuff]{Stuffing}
 
 To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, which would lead to framing errors, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself.
