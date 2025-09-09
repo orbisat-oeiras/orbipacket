@@ -101,6 +101,7 @@
 \algdef{SE}[STRUCT]{Struct}{EndStruct}[1]{\algorithmicstruct\ \texttype{#1}}{\algorithmicend\ \algorithmicstruct}
 \def\t#1:#2;{\ensuremath{#1}\ :\ #2}
 \def\T{\State\t}
+\def\acc{\ensuremath{\rightarrow}}
 
 \title{OrbiPacket Protocol Specification - v\version}
 \author{The OrbiSat Oeiras Team}
@@ -251,9 +252,43 @@ The third option, and the one currently chosen by OrbiPacket, is to store the ra
 
 \footnotetext{For instance, an end-user could mistakenly provide the bytes in big-endian.}
 
-\section[stuff]{Stuffing}
+\section[enc]{Encoding}
+
+Encoding a packet is the process of converting it into a stream of bytes. This stream of bytes is written into a buffer (byte array), either provided by the end-user or managed by the implementation.
+
+Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind and the device ID, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first. As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
+
+\subsection[stuff]{Stuffing}
 
 To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, which would lead to framing errors, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself.
+
+A full explanation of COBS is beyond the scope of this specification -- if necessary, refer to the literature on the subject. In short, COBS works by replacing every null byte with the \textit{distance} to the next null byte -- this also includes prepending a byte indicating the distance to the first null byte. Furthermore, if the distance to the next null byte is larger than 255 (the maximum value of a single byte), then a distance of 255 will be indicated, and the 255$^{th}$ byte will then indicate the distance to the next null byte (which can again be 255). Not only is this process remarkably simple, it also guarantees \textit{consistent overhead}, i.e., the best-case, average-case and worst-case overheads are quite similar. The worst-case overhead is
+$$\left\lceil \frac{N}{254} \right\rceil\,,$$
+where $N$ is the length of the input.
+
+\subsection[enc-impl]{Implementation details}
+\Cref{listing:enc-pseudo} presents an encoding procedure in pseudo-code, to serve as a reference for implementations. The procedure should be part of the public API of the implementation, taking in an instance of a packet (according to the representation presented in \cref{s:repr}), and possibly a buffer. It should return a buffer (or a view into one) containing the encoded packet, possibly wrapped in a result type if any operations it performs are fallible. For implementations in object-oriented languages, it is recommended this method is a member of the representation object type.
+
+\begin{algorithm}[h]
+  \caption{Encoding Procedure}\label{listing:enc-pseudo}
+  \begin{algorithmic}
+    \Procedure{encode}{\t packet:Packet;}
+    \State $\textit{buffer} \gets []$
+    \State write $\textit{packet} \acc \textit{version}$ to \textit{buffer}
+    \State write (length of $\textit{packet} \acc \textit{payload}$) to \textit{buffer}
+    \State $\textit{control} \gets \left(\textit{packet} \acc \textit{deviceId} \ll 2\right)$
+    \If{$\textit{packet} \acc \textit{kind}$ is TC}
+    \State $\textit{control} \gets \textit{control} \mathbin{|} \texttt{0b10000000}$
+    \EndIf
+    \State write \textit{control} to \textit{buffer}
+    \State write (little-endian bytes of $\textit{packet} \acc \textit{timestamp}$) to \textit{buffer}
+    \State write $\textit{packet} \acc \textit{payload}$ to \textit{buffer}
+    \State write (compute CRC of \textit{buffer}) to \textit{buffer}
+    \State stuff \textit{buffer}
+    \State \Return \textit{buffer}
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
 
 \section[ex-packet]{Example Packet}
 
