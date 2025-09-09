@@ -255,41 +255,6 @@ The third option, and the one currently chosen by OrbiPacket, is to store the ra
 
 To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, which would lead to framing errors, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself.
 
-\section[ops]{Packet Operations}
-
-\subsection[op:cx]{Creation}
-\begin{itemize}
-  \item Packet fields, excluding the CRC and termination bytes, are converted into binary and chained together in the specified order.
-  \item A CRC is computed over the resulting binary string, and appended to it.
-  \item COBS stuffing is applied to the entire binary string, and the termination byte is appended to it, concluding packet creation.
-\end{itemize}
-
-\subsection[op:tx]{Transmission}
-\begin{itemize}
-  \item Packets are transmitted in binary, over an application-specific digital or physical medium (e.g. radio).
-\end{itemize}
-
-\subsection[op:rx]{Reception}
-\begin{itemize}
-  \item Packets are decoded using COBS
-  \item The packet structure is recovered from the decoded binary string.
-\end{itemize}
-
-\subsection[op:vx]{Validation}
-\begin{itemize}
-  \item Packets which don't start at \texttt{0x00} (the termination byte of the previous packet) are discarded. This allows for re-synchronization in case of a broken or lossy connection.
-  \item Packets which cannot be properly decoded with COBS are discarded.
-  \item Packets which fail CRC validation are discarded.
-  \item Packets with erroneous length fields are discarded.
-\end{itemize}
-
-\subsection[op:ack-retx]{Acknowledgment and Retransmission}
-Acknowledgment of packets, and their retransmission in case of packet loss, is not currently required by the protocol. It is up to implementations to decide if, and how, this is handled.
-
-\subsection[op:version]{Version Negotiation}
-No version negotiation strategy is enforced by the packed in the event of communicators having mismatched versions.
-
-
 \section[ex-packet]{Example Packet}
 
 \begin{table}[h]
