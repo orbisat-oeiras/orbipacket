@@ -290,27 +290,6 @@ where $N$ is the length of the input.
   \end{algorithmic}
 \end{algorithm}
 
-\section[ex-packet]{Example Packet}
-
-\begin{table}[h]
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    Field                & Example Value                       & Notes                     \\
-    \midrule
-    \textbf{Version}     & \texttt{0x\versionbyte}             & Protocol version \version \\
-    \textbf{Length}      & \texttt{0x04}                       & Payload size: 4 bytes     \\
-    \textbf{Control}     & \texttt{0x81}                       & Telecommand, Device ID 1  \\
-    \textbf{Timestamp}   & \texttt{0x000001787ABCEF0123456789} & Example timestamp         \\
-    \textbf{Payload}     & \texttt{0xDEADBEEF}                 & Application-specific data \\
-    \textbf{CRC}         & \texttt{0x5A}                       & Example CRC value         \\
-    \textbf{Termination} & \texttt{0x00}                       & Packet terminator         \\
-    \bottomrule
-  \end{tabular}
-  \caption{An example packet}
-  \label{table:example}
-\end{table}
-
 \section[overhead]{Packet Overhead}
 
 The fixed fields (header and CRC) result in a total, unstuffed overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
