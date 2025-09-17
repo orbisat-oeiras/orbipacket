@@ -314,15 +314,4 @@ where $N$ is the length of the input.
 
 The fixed fields (header and CRC) result in a total, unstuffed overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
 
-\section[impl]{Implementation Guidelines}
-
-If available, use a reference implementation of the protocol for the chosen language. Otherwise, make sure to conform to the specifications of this document.
-
-\subsection[i:version]{Versioning}
-
-The protocol is versioned using \href{https://semver.org/}{Semantic Versioning}. Breaking changes always increment the version byte. Implementations of the protocol must clearly specify to the end user the supported protocol versions.
-
-\subsection[i:cobs]{COBS}
-Reference implementations of the COBS algorithm should be used whenever possible. Otherwise, refer to the literature for details on the stuffing and unstuffing process. The packet data should be stuffed to remove the termination byte, that is, \texttt{0x00}.
-
 \end{document}
