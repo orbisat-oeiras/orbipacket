@@ -201,7 +201,27 @@ Contains application-specific data, such as telemetry readings or command instru
 
 \subsection[f:crc]{CRC}
 \fieldsize{2 bytes}\\[8pt]
-Cyclic redundancy check value computed over all preceding fields. The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation.
+Cyclic redundancy check value computed over all preceding fields. The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation. The maximum packet length (excluding the CRC and termination bytes) is 255 + 11 = 266 bytes or 2128 bits. According to \href{https://users.ece.cmu.edu/~koopman/crc/c16/0xbaad_len.txt}{Koopman's research}, this polynomial can protect 7985 bits at a Hamming distance of 4 and 108 bits (equivalent to 2 bytes of payload data) at a Hamming distance of 5, with negligible protected lengths for higher Hamming distances. This is deemed sufficient for this protocol. \Cref{table:crc} lists the parameters for computing the CRC.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lr}
+    \toprule
+    Parameter      & Value           \\
+    \midrule
+    Width          & \texttt{16}     \\
+    Polynomial     & \texttt{0v755b} \\
+    Initial Value  & \texttt{0x0000} \\
+    Reflect Input  & No              \\
+    Reflect Output & No              \\
+    Xor Output     & \texttt{0x0000} \\
+    Check          & \texttt{0x20fe} \\
+    Residue        & \texttt{0x0000} \\
+    \bottomrule
+  \end{tabular}
+  \caption{CRC Parameters}
+  \label{table:crc}
+\end{table}
 
 
 \subsection[f:term]{Termination Byte}
@@ -301,21 +321,6 @@ If available, use a reference implementation of the protocol for the chosen lang
 \subsection[i:version]{Versioning}
 
 The protocol is versioned using \href{https://semver.org/}{Semantic Versioning}. Breaking changes always increment the version byte. Implementations of the protocol must clearly specify to the end user the supported protocol versions.
-
-\subsection[i:crc]{CRC Computation}
-
-The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation. The maximum packet length (excluding the CRC and termination bytes) is 255 + 11 = 266 bytes or 2128 bits. According to \href{https://users.ece.cmu.edu/~koopman/crc/c16/0xbaad_len.txt}{Koopman's research}, this polynomial can protect 7985 bits at a Hamming distance of 4 and 108 bits (equivalent to 2 bytes of payload data) at a Hamming distance of 5, with negligible protected lengths for higher Hamming distances. This is deemed sufficient for this protocol. The parameters of this polynomial are:
-
-\begin{itemize}
-  \item \textit{width}: \texttt{16}
-  \item \textit{poly}: \texttt{0x755b}
-  \item \textit{init}: \texttt{0x0000}
-  \item \textit{refin}: \texttt{false}
-  \item \textit{refout}: \texttt{false}
-  \item \textit{xorout}: \texttt{0x0000}
-  \item \textit{check}: \texttt{0x20fe}
-  \item \textit{residue}: \texttt{0x0000}
-\end{itemize}
 
 \subsection[i:cobs]{COBS}
 Reference implementations of the COBS algorithm should be used whenever possible. Otherwise, refer to the literature for details on the stuffing and unstuffing process. The packet data should be stuffed to remove the termination byte, that is, \texttt{0x00}.
