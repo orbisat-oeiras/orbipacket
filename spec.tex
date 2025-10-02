@@ -99,7 +99,8 @@
 \algnewcommand\texttype{\textsc}
 \algnewcommand\algorithmicstruct{\textbf{struct}}
 \algdef{SE}[STRUCT]{Struct}{EndStruct}[1]{\algorithmicstruct\ \texttype{#1}}{\algorithmicend\ \algorithmicstruct}
-\def\t#1:#2;{\ensuremath{#1}\ :\ #2}
+\algrenewcommand\algorithmicforall{\textbf{for each}}
+\def\t#1:#2;{\ensuremath{\textit{#1}}\ :\ #2}
 \def\T{\State\t}
 \def\acc{\ensuremath{\rightarrow}}
 
@@ -307,6 +308,77 @@ where $N$ is the length of the input.
     \State stuff \textit{buffer}
     \State \Return \textit{buffer}
     \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+\section[dec]{Decoding}
+
+Decoding is the process converse to encoding. Decoding can be thought of as the operation of converting a stream of bytes into one or more valid packets. This encompasses three core steps: \textbf{separating} the stream into individual packets, \textbf{reconstructing} a packet from the raw bytes and \textbf{validating} it. The first step is to be handled separately from the other two, since it represents a logically separate task.
+
+\subsection[dec:single]{Single Packet Decoding}
+Decoding a single packet is a somewhat straightforward task. It mostly consists of performing the encoding process \textit{backwards}. However, validity checks are interleaved, so that ill-formed packets are discarded.
+
+Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 13 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 13. To avoid integer underflow errors, implementations may first check that the packet is at least 13 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID and the packet kind. The timestamp is reconstructed from bytes 4 through 11, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
+
+\begin{algorithm}[h]
+  \caption{Single packet decoding procedure}\label{listing:dec-single}
+  \begin{algorithmic}
+    \Procedure{decode}{\t buffer:uint8;}
+    \State unstuff \textit{buffer}
+    \State $\textit{version} \gets \textit{buffer}[0]$
+    \If{$\textit{buffer}[0]$ is not equal to \textit{protocol version}}
+    \State \Return invalid packet
+    \EndIf
+    \State $\textit{crc} \gets (\textrm{get CRC from }\textit{buffer})$
+    \If{\textit{crc} is not equal to (compute CRC of \textit{buffer})}
+    \State \Return invalid packet
+    \EndIf
+    \State $\textit{length} \gets \textit{buffer}[1]$
+    \If{\textit{length} is not equal to ($\textrm{length of }\textit{buffer} - 13$)}
+    \State \Return invalid packet
+    \EndIf
+    \State $\textit{kind} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b10000000})$
+    \State $\textit{id} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b01111100}) \gg 2$
+    \State $\textit{timestamp} \gets \textit{buffer}[3 \mathbin{\textrm{through}} 10]$
+    \State $\textit{payload} \gets \textit{buffer}[11 \mathbin{\textrm{through}} \textit{length} - 2]$
+    \State \Return Packet\,\{\textit{version}, \textit{kind}, \textit{id}, \textit{timestamp}, \textit{payload}\}
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+Single packet decoding must be exposed through a top-level API -- either as a standalone function which consumes a buffer and returns a packet or, in object oriented languages, as a constructor of the packet type. In either case, the operation is fallible.
+
+\subsection[dec:framing]{Framing}
+To properly decode a complete stream, it is necessary to identify packet boundaries, i.e, to frame the packets. This is achieved by splitting the incoming byte stream at the termination byte, thus obtaining a set of byte sequences corresponding to single packets. There is, however, a catch: the last such sequence might be incomplete, in the event that not all bytes of the latest packet have yet been received. These \textit{trailing bytes} can only be decoded once the packet is complete, so they need to be temporarily stored. This storage can be controlled either by the end user or by the implementation, resulting in the \textit{stateless} and \textit{stateful} methods described below. Note that both must internally invoke the single packet decoding routine. An implementation must provide both methods as part of its top-level API.
+
+\subsubsection[dec:stateless]{Stateless Framing}
+Stateless framing, as the name implies, doesn't keep track of any internal state: all decoding calls are independent and idempotent, and trailing bytes have to be managed by the end user. Thus, a decoding call receives a buffer, extracts all complete packets from it (regardless of their validity) and returns the trailing bytes. It is then up to the end user to prepend these trailing bytes to the received bytes before the next decoding call. \Cref{listing:dec-stateless} outlines the control flow of this approach.
+
+\begin{algorithm}[h]
+  \caption{Control Flow of Stateless Framing}\label{listing:dec-stateless}
+  \begin{algorithmic}
+    \State initialise \textit{buffer}, \textit{trailing}
+    \While{read incoming bytes into \textit{buffer}}
+    \State $\textit{packets}, \textit{trailing} \gets \textrm{stateless decode (\textit{trailing} + \textit{buffer})}$
+    \ForAll{\textit{packet} in \textit{packets}}
+    \State handle \textit{packet}
+    \EndFor
+    \EndWhile
+  \end{algorithmic}
+\end{algorithm}
+
+\subsubsection[dec:stateful]{Stateful Framing}
+Stateful framing internally keeps track of trailing bytes, through a dedicated object. This object exposes a push-pop interface: it can be \textit{fed} incoming bytes and \textit{polled} for decoded packets, which it returns one at a time. Note that Note that byte sequences are only processed when a packed is required. \Cref{listing:dec-stateful} outlines the control flow of this approach. Clearly, using this approach is much simpler in terms of control flow. However, it takes memory control away from the end user, which might be undesirable.
+
+\begin{algorithm}[h]
+  \caption{Control Flow of Stateful Framing}\label{listing:dec-stateful}
+  \begin{algorithmic}
+    \State initialise \textit{decoder}
+    \While{read incoming bytes into \textit{decoder}}
+    \While{get \textit{packet} from \textit{decoder}}
+    \State handle \textit{packet}
+    \EndWhile
+    \EndWhile
   \end{algorithmic}
 \end{algorithm}
 
