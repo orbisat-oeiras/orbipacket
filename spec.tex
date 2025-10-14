@@ -273,6 +273,10 @@ The third option, and the one currently chosen by OrbiPacket, is to store the ra
 
 \footnotetext{For instance, an end-user could mistakenly provide the bytes in big-endian.}
 
+\subsection[overhead]{Packet Overhead}
+
+The fixed fields (header and CRC) result in a total, unstuffed overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
+
 \section[enc]{Encoding}
 
 Encoding a packet is the process of converting it into a stream of bytes. This stream of bytes is written into a buffer (byte array), either provided by the end-user or managed by the implementation.
@@ -381,9 +385,5 @@ Stateful framing internally keeps track of trailing bytes, through a dedicated o
     \EndWhile
   \end{algorithmic}
 \end{algorithm}
-
-\section[overhead]{Packet Overhead}
-
-The fixed fields (header and CRC) result in a total, unstuffed overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
 
 \end{document}
