@@ -9,6 +9,7 @@
 \usepackage{babel}
 \usepackage{booktabs}
 \usepackage[colorlinks,pdfstartview=FitH,bookmarks,pdfcenterwindow]{hyperref}
+\usepackage[all]{hypcap}
 \usepackage[capitalise]{cleveref}
 
 \usepackage{protocol_version}
@@ -112,6 +113,7 @@
 \maketitle
 \input{diagram.tex}
 \tableofcontents
+\newpage
 
 \section[intro]{Introduction}
 
@@ -353,7 +355,33 @@ Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the versi
 Single packet decoding must be exposed through a top-level API -- either as a standalone function which consumes a buffer and returns a packet or, in object oriented languages, as a constructor of the packet type. In either case, the operation is fallible.
 
 \subsection[dec:framing]{Framing}
-To properly decode a complete stream, it is necessary to identify packet boundaries, i.e, to frame the packets. This is achieved by splitting the incoming byte stream at the termination byte, thus obtaining a set of byte sequences corresponding to single packets. There is, however, a catch: the last such sequence might be incomplete, in the event that not all bytes of the latest packet have yet been received. These \textit{trailing bytes} can only be decoded once the packet is complete, so they need to be temporarily stored. This storage can be controlled either by the end user or by the implementation, resulting in the \textit{stateless} and \textit{stateful} methods described below. Note that both must internally invoke the single packet decoding routine. An implementation must provide both methods as part of its top-level API.
+To properly decode a complete stream, it is necessary to identify packet boundaries, i.e, to frame the packets. This is achieved by splitting the incoming byte stream at the termination byte, thus obtaining a set of byte sequences corresponding to single packets. There is, however, a catch: the last such sequence might be incomplete, in the event that not all bytes of the latest packet have yet been received (as exemplified in \cref{fig:trailing-bytes}). These \textit{trailing bytes} can only be decoded once the packet is complete, so they need to be temporarily stored. This storage can be controlled either by the end user or by the implementation, resulting in the \textit{stateless} and \textit{stateful} methods described below. Note that both must internally invoke the single packet decoding routine. An implementation must provide both methods as part of its top-level API.
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}[yscale=-1]
+    \draw (0,0) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw (2,0) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw (3,0) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw (5,0) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw (6,0) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw[->] (4,1) -- ++(0,1) node [midway,fill=white] {framing};
+    \draw (0,2) rectangle ++(2,1) node [midway] {packet};
+    \draw (3,2) rectangle ++(2,1) node [midway] {packet};
+    \draw (6,2) rectangle ++(2,1) node [midway,align=center] {\textit{trailing}\\\textit{bytes}};
+    \draw[->] (7,3) -- (1,4) node [midway,fill=white] {more bytes received};
+    \draw (0,4) rectangle ++(2,1) node [midway,align=center] {\textit{trailing}\\\textit{bytes}};
+    \draw (2,4) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw (3,4) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw[->] (5,4.5) -- ++(1,0) node [right,align=left] {\textit{trailing bytes}\\were a \textbf{complete} packet};
+    \node[right] at (0,5.5) {\textbf{or}};
+    \draw (0,6) rectangle ++(2,1) node [midway,align=center] {\textit{trailing}\\\textit{bytes}};
+    \draw (2,6) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw (4,6) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw[->] (5,6.5) -- ++(1,0) node [right,align=left] {\textit{trailing bytes}\\were an \textbf{incomplete} packet};
+  \end{tikzpicture}
+  \caption{Trailing bytes}\label{fig:trailing-bytes}
+\end{figure}
 
 \subsubsection[dec:stateless]{Stateless Framing}
 Stateless framing, as the name implies, doesn't keep track of any internal state: all decoding calls are independent and idempotent, and trailing bytes have to be managed by the end user. Thus, a decoding call receives a buffer, extracts all complete packets from it (regardless of their validity) and returns the trailing bytes. It is then up to the end user to prepend these trailing bytes to the received bytes before the next decoding call. \Cref{listing:dec-stateless} outlines the control flow of this approach.
