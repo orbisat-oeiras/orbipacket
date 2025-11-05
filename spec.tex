@@ -124,7 +124,7 @@ OrbiPacket is a packet-based communication protocol. It was created specifically
 }
 
 \section[overview]{Protocol Overview}
-The OrbiPacket protocol enables communication between a CanSat and one or more groundstations. This communication is carried out by exchanging \textbf{packets}, the basic units of the protocol. Packets are autonomous entities, which have a logical, high-level structure. These packets can be converted into raw bytes -- a process known as \textbf{encoding} -- adequate for transmission over a physical layer\footnotemark (e.g. radio). At the other end of the link, the received bytes can then be \textbf{decoded} back into packets.
+The OrbiPacket protocol enables communication between a CanSat and one or more groundstations. This communication is carried out by exchanging \textbf{packets}, the basic units of the protocol. Packets are autonomous entities, which have a logical, high-level structure. These packets can be converted into raw bytes -- a process known as \textbf{encoding} -- adequate for transmission over a physical layer\footnotemark\ (e.g. radio). At the other end of the link, the received bytes can then be \textbf{decoded} back into packets.
 
 \footnotetext{In this specification, the designation \textit{physical layer} is used very liberally, referring to any layers responsible for transmitting raw bytes. In that sense, the physical layer refers to the set of all layers below OrbiPacket -- which might be a single layer or multiple layers.}
 
@@ -211,7 +211,7 @@ Cyclic redundancy check value computed over all preceding fields. The generator 
     Parameter      & Value           \\
     \midrule
     Width          & \texttt{16}     \\
-    Polynomial     & \texttt{0v755b} \\
+    Polynomial     & \texttt{0x755b} \\
     Initial Value  & \texttt{0x0000} \\
     Reflect Input  & No              \\
     Reflect Output & No              \\
@@ -232,7 +232,7 @@ Inserted at the end of every packet to frame it, i.e, delimit it from adjacent p
 \subsection[repr]{Representation}
 In their unencoded form, packets should be represented by a high-level construct. The specifics of this will invariably depend on the concrete language. Nonetheless, the recommended way of representing packets is through the use of a custom data type or object.
 
-In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Notice the CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it must be included in the packet representation.
+In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Notice the CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
 
 \begin{algorithm}[h]
   \caption{Packet Representation}\label{listing:struct}
@@ -247,7 +247,7 @@ In the following sections, the pseudo-code data type defined in \cref{listing:st
   \end{algorithmic}
 \end{algorithm}
 
-\subsection[payload-enc]{Payload Storage}
+\subsubsection[payload-enc]{Payload Storage}
 A payload can contain arbitrary data -- as long as it doesn't surpass the 255 byte limit. This data could assume many forms, and thus be of many different data types, which all have to somehow be stored by the same representation.
 
 Perhaps the most obvious solution for many would be the use of a generic type (or a type template, or whichever other name such a construct might have). Thus the representation presented in \cref{listing:struct} would become something like \cref{listing:struct-generic}. While it might seem good at first, this solution presents two major drawbacks. Firstly, there are languages that don't support generics. Out of those that do, not all provide a mechanism to restrict the generic argument based on its size, so payloads over 255 bytes would only be detected when attempting to encode them. Furthermore, generics tend to \textit{pollute} APIs -- if packets were generic, any function or type interacting with them would also have to be generic. Because of these downsides, this solution is deemed unfitting.
@@ -372,7 +372,7 @@ Stateless framing, as the name implies, doesn't keep track of any internal state
 \end{algorithm}
 
 \subsubsection[dec:stateful]{Stateful Framing}
-Stateful framing internally keeps track of trailing bytes, through a dedicated object. This object exposes a push-pop interface: it can be \textit{fed} incoming bytes and \textit{polled} for decoded packets, which it returns one at a time. Note that Note that byte sequences are only processed when a packed is required. \Cref{listing:dec-stateful} outlines the control flow of this approach. Clearly, using this approach is much simpler in terms of control flow. However, it takes memory control away from the end user, which might be undesirable.
+Stateful framing internally keeps track of trailing bytes, through a dedicated object. This object exposes a push-pop interface: it can be \textit{fed} incoming bytes and \textit{polled} for decoded packets, which it returns one at a time. Note that byte sequences are only processed when a packed is required. \Cref{listing:dec-stateful} outlines the control flow of this approach. Clearly, using this approach is much simpler in terms of control flow. However, it takes memory control away from the end user, which might be undesirable.
 
 \begin{algorithm}[h]
   \caption{Control Flow of Stateful Framing}\label{listing:dec-stateful}
