@@ -4,9 +4,12 @@
 \usetikzlibrary{decorations.pathreplacing,arrows.meta,shapes}
 \usepackage{tcolorbox}
 \tcbuselibrary{breakable,skins}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{babel}
 \usepackage{booktabs}
 \usepackage[colorlinks,pdfstartview=FitH,bookmarks,pdfcenterwindow]{hyperref}
+\usepackage[all]{hypcap}
 \usepackage[capitalise]{cleveref}
 
 \usepackage{protocol_version}
@@ -90,6 +93,18 @@
   }
 }
 
+\floatname{algorithm}{Listing}
+\renewcommand{\listalgorithmname}{List of Listings}
+\crefname{algorithm}{Listing}{Listings}
+
+\algnewcommand\texttype{\textsc}
+\algnewcommand\algorithmicstruct{\textbf{struct}}
+\algdef{SE}[STRUCT]{Struct}{EndStruct}[1]{\algorithmicstruct\ \texttype{#1}}{\algorithmicend\ \algorithmicstruct}
+\algrenewcommand\algorithmicforall{\textbf{for each}}
+\def\t#1:#2;{\ensuremath{\textit{#1}}\ :\ #2}
+\def\T{\State\t}
+\def\acc{\ensuremath{\rightarrow}}
+
 \title{OrbiPacket Protocol Specification - v\version}
 \author{The OrbiSat Oeiras Team}
 \date{}
@@ -98,6 +113,7 @@
 \maketitle
 \input{diagram.tex}
 \tableofcontents
+\newpage
 
 \section[intro]{Introduction}
 
@@ -109,24 +125,36 @@ OrbiPacket is a packet-based communication protocol. It was created specifically
   The OrbiSat Oeiras team first participated in the CanSat Portugal competition in 2023/2024, being one of the finalists of the 11th edition. Several issues on all fronts meant no data was received during the CanSat's descent. The next year, wanting to get everything right, the team's firmware developer (aka me, Levi Gomes) decided sending data over text was neither efficient nor rigorous enough. So, after some effort, the first version of OrbiPacket was born during the 12th edition of the competition, in 2024/2025. And in case you're curious... no, we still didn't get any data.
 }
 
+\section[overview]{Protocol Overview}
+The OrbiPacket protocol enables communication between a CanSat and one or more groundstations. This communication is carried out by exchanging \textbf{packets}, the basic units of the protocol. Packets are autonomous entities, which have a logical, high-level structure. These packets can be converted into raw bytes -- a process known as \textbf{encoding} -- adequate for transmission over a physical layer\footnotemark\ (e.g. radio). At the other end of the link, the received bytes can then be \textbf{decoded} back into packets.
+
+\footnotetext{In this specification, the designation \textit{physical layer} is used very liberally, referring to any layers responsible for transmitting raw bytes. In that sense, the physical layer refers to the set of all layers below OrbiPacket -- which might be a single layer or multiple layers.}
+
+For communication to be possible, messages aren't enough -- one also requires \textit{communicators}. In OrbiPacket, these communicators are referred to as \textbf{devices}. A device is any discrete entity capable of sending and receiving packets. Note that OrbiPacket devices don't need to correspond to physical devices. In fact, a single piece of hardware can act as several devices, or, conversely, many components can come together under one device.
+
+The protocol distinguishes between two kinds of packets: \textbf{telemetry} (TM) and \textbf{telecommand} (TC). The former represent data being sent \textit{from} a device, whereas the latter encodes instructions sent \textit{to} a device.
+
+As an example, consider a temperature sensor which is able to send readings and receive a command to alter the frequency of said readings. The readings will be wrapped in TM packets, while the command will be a TC packet. Since the sensor is able to send and receive packets, it is considered a device.
+
+It is important to note that devices are more than a formalism. Each packet contains information about the device it relates to (i.e. the sender for TM packets and the receiver for TC packets), in the form of a \textbf{device identifier} (ID). The ID is a 5-bit number uniquely identifying a device in the CanSat.
+
 \section[fields]{Packet Structure}
 
-Each packet consists of the following fields, which must be encoded in the specified order:
+A packet is made up of several \textit{fields}. \Cref{table:struct} shows an overview of the packet structure. The fields before the payload are called the \textbf{header}, they contain metadata about the packet. When encoding a packet, fields must be concatenated in order. Fields which span multiple bytes are to be encoded in \textbf{little endian}, i.e., least-significant byte first.
 
 \begin{table}[h]
   \centering
-  \begin{tabular}{ll}
+  \begin{tabular}{lr}
     \toprule
-    Field                     & Size (bytes) \\
+    Field            & Size (bytes) \\
     \midrule
-    \textbf{Header}           & 11           \\
-    Version                   & 1            \\
-    Length                    & 1            \\
-    Control                   & 1            \\
-    Timestamp                 & 8            \\
-    \textbf{Payload}          & 0-255        \\
-    \textbf{CRC}              & 2            \\
-    \textbf{Termination Byte} & 1            \\
+    Version          & 1            \\
+    Length           & 1            \\
+    Control          & 1            \\
+    Timestamp        & 8            \\
+    Payload          & 0-255        \\
+    CRC              & 2            \\
+    Termination Byte & 1            \\
     \bottomrule
   \end{tabular}
   \caption{Packet structure overview}
@@ -147,13 +175,20 @@ Specifies the size of the payload in bytes, ranging from 0 to 255.
 
 \subsubsection[f:control]{Control}
 \fieldsize{1 byte}\\[8pt]
-Encodes metadata about the packet type and device identifier. The following fields are specified from the highest bit to the lowest bit.
+Encodes metadata about the packet kind and device identifier. The following fields are specified from the highest bit to the lowest bit.
 \begin{itemize}
   \item \textbf{TM/TC Flag}: 1 bit, where \texttt{0} indicates telemetry and \texttt{1} indicates a telecommand.
   \item \textbf{Device ID}: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
 \end{itemize}
 \warnbox{Reserved bits}{
   The two remaining bits of the control byte are currently unused. Future versions of the protocol may use them to include additional information. They must therefore be ignored -- do not use them to encode application specific data.
+}
+\tipbox{Interpreting the control byte}{
+  One can think of the control byte as \textit{saying} the following about the packet:
+  \begin{itemize}
+    \item \texttt{0b0DDDDDRR}: TM packet from device \texttt{0bDDDDD} to the groundstation
+    \item \texttt{0b1DDDDDRR}: TC packet from the groundstation to device \texttt{0bDDDDD}
+  \end{itemize}
 }
 
 
@@ -169,106 +204,214 @@ Contains application-specific data, such as telemetry readings or command instru
 
 \subsection[f:crc]{CRC}
 \fieldsize{2 bytes}\\[8pt]
-Cyclic redundancy check value computed over all preceding fields. The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation.
+Cyclic redundancy check value computed over all preceding fields. The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation. The maximum packet length (excluding the CRC and termination bytes) is 255 + 11 = 266 bytes or 2128 bits. According to \href{https://users.ece.cmu.edu/~koopman/crc/c16/0xbaad_len.txt}{Koopman's research}, this polynomial can protect 7985 bits at a Hamming distance of 4 and 108 bits (equivalent to 2 bytes of payload data) at a Hamming distance of 5, with negligible protected lengths for higher Hamming distances. This is deemed sufficient for this protocol. \Cref{table:crc} lists the parameters for computing the CRC.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lr}
+    \toprule
+    Parameter      & Value           \\
+    \midrule
+    Width          & \texttt{16}     \\
+    Polynomial     & \texttt{0x755b} \\
+    Initial Value  & \texttt{0x0000} \\
+    Reflect Input  & No              \\
+    Reflect Output & No              \\
+    Xor Output     & \texttt{0x0000} \\
+    Check          & \texttt{0x20fe} \\
+    Residue        & \texttt{0x0000} \\
+    \bottomrule
+  \end{tabular}
+  \caption{CRC Parameters}
+  \label{table:crc}
+\end{table}
 
 
 \subsection[f:term]{Termination Byte}
 \fieldsize{1 byte}\\[8pt]
 Inserted at the end of every packet to frame it, i.e, delimit it from adjacent packets. Fixed at \texttt{0x00}.
 
+\subsection[repr]{Representation}
+In their unencoded form, packets should be represented by a high-level construct. The specifics of this will invariably depend on the concrete language. Nonetheless, the recommended way of representing packets is through the use of a custom data type or object.
 
-\section[endianness]{Field Order and Endianness}
+In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Notice the CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
 
-Packet fields must be encoded in the specified order, as a byte string. Multi-byte fields are encoded in \textbf{little-endian}.
+\begin{algorithm}[h]
+  \caption{Packet Representation}\label{listing:struct}
+  \begin{algorithmic}[1]
+    \Struct{Packet}
+    \T version:uint8;
+    \T kind:TM or TC;
+    \T deviceId:uint8;
+    \T timestamp:uint64;
+    \T payload:uint8[];
+    \EndStruct
+  \end{algorithmic}
+\end{algorithm}
 
-\section[stuff]{Stuffing}
+\subsubsection[payload-enc]{Payload Storage}
+A payload can contain arbitrary data -- as long as it doesn't surpass the 255 byte limit. This data could assume many forms, and thus be of many different data types, which all have to somehow be stored by the same representation.
 
-To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, which would lead to framing errors, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself.
+Perhaps the most obvious solution for many would be the use of a generic type (or a type template, or whichever other name such a construct might have). Thus the representation presented in \cref{listing:struct} would become something like \cref{listing:struct-generic}. While it might seem good at first, this solution presents two major drawbacks. Firstly, there are languages that don't support generics. Out of those that do, not all provide a mechanism to restrict the generic argument based on its size, so payloads over 255 bytes would only be detected when attempting to encode them. Furthermore, generics tend to \textit{pollute} APIs -- if packets were generic, any function or type interacting with them would also have to be generic. Because of these downsides, this solution is deemed unfitting.
 
-\section[ops]{Packet Operations}
+\begin{algorithm}[h]
+  \caption{A generic packet}\label{listing:struct-generic}
+  \begin{algorithmic}[1]
+    \Struct{Packet<P>}
+    \T version:uint8;
+    \T kind:TM or TC;
+    \T deviceId:uint8;
+    \T timestamp:uint64;
+    \T payload:P;
+    \EndStruct
+  \end{algorithmic}
+\end{algorithm}
 
-\subsection[op:cx]{Creation}
-\begin{itemize}
-  \item Packet fields, excluding the CRC and termination bytes, are converted into binary and chained together in the specified order.
-  \item A CRC is computed over the resulting binary string, and appended to it.
-  \item COBS stuffing is applied to the entire binary string, and the termination byte is appended to it, concluding packet creation.
-\end{itemize}
+Another possibility would be to use a \textit{universal} type\footnotemark\ which can hold anything. Once again, this approach has the issue of not being able to reject payloads larger than 255 bytes when they're created. On top of that, universal types are usually unsafe to handle, since all type information is lost.
 
-\subsection[op:tx]{Transmission}
-\begin{itemize}
-  \item Packets are transmitted in binary, over an application-specific digital or physical medium (e.g. radio).
-\end{itemize}
+\footnotetext{This is known by many names. In type theory, it's often referred to as \textit{top} or \textit{any}; object oriented languages usually call it \textit{object}.}
 
-\subsection[op:rx]{Reception}
-\begin{itemize}
-  \item Packets are decoded using COBS
-  \item The packet structure is recovered from the decoded binary string.
-\end{itemize}
+The third option, and the one currently chosen by OrbiPacket, is to store the raw bytes of the payload in the packet representation, as a byte array. This way, any form of data can be stored -- and by using fixed-size arrays, a payload larger than 255 bytes can't ever be created. In effect, this solution offsets the conversion of a payload to its bytes from the time of packet encoding to the time of packet creation. However, this doesn't mean the end-user should be responsible for performing the conversion -- that would be potentially unsafe.\footnotemark\ Instead, an implementation should provide an API to create payloads out of common data types.
 
-\subsection[op:vx]{Validation}
-\begin{itemize}
-  \item Packets which don't start at \texttt{0x00} (the termination byte of the previous packet) are discarded. This allows for re-synchronization in case of a broken or lossy connection.
-  \item Packets which cannot be properly decoded with COBS are discarded.
-  \item Packets which fail CRC validation are discarded.
-  \item Packets with erroneous length fields are discarded.
-\end{itemize}
+\footnotetext{For instance, an end-user could mistakenly provide the bytes in big-endian.}
 
-\subsection[op:ack-retx]{Acknowledgment and Retransmission}
-Acknowledgment of packets, and their retransmission in case of packet loss, is not currently required by the protocol. It is up to implementations to decide if, and how, this is handled.
-
-\subsection[op:version]{Version Negotiation}
-No version negotiation strategy is enforced by the packed in the event of communicators having mismatched versions.
-
-
-\section[ex-packet]{Example Packet}
-
-\begin{table}[h]
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    Field                & Example Value                       & Notes                     \\
-    \midrule
-    \textbf{Version}     & \texttt{0x\versionbyte}             & Protocol version \version \\
-    \textbf{Length}      & \texttt{0x04}                       & Payload size: 4 bytes     \\
-    \textbf{Control}     & \texttt{0x81}                       & Telecommand, Device ID 1  \\
-    \textbf{Timestamp}   & \texttt{0x000001787ABCEF0123456789} & Example timestamp         \\
-    \textbf{Payload}     & \texttt{0xDEADBEEF}                 & Application-specific data \\
-    \textbf{CRC}         & \texttt{0x5A}                       & Example CRC value         \\
-    \textbf{Termination} & \texttt{0x00}                       & Packet terminator         \\
-    \bottomrule
-  \end{tabular}
-  \caption{An example packet}
-  \label{table:example}
-\end{table}
-
-\section[overhead]{Packet Overhead}
+\subsection[overhead]{Packet Overhead}
 
 The fixed fields (header and CRC) result in a total, unstuffed overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
 
-\section[impl]{Implementation Guidelines}
+\section[enc]{Encoding}
 
-If available, use a reference implementation of the protocol for the chosen language. Otherwise, make sure to conform to the specifications of this document.
+Encoding a packet is the process of converting it into a stream of bytes. This stream of bytes is written into a buffer (byte array), either provided by the end-user or managed by the implementation.
 
-\subsection[i:version]{Versioning}
+Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind and the device ID, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first. As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
 
-The protocol is versioned using \href{https://semver.org/}{Semantic Versioning}. Breaking changes always increment the version byte. Implementations of the protocol must clearly specify to the end user the supported protocol versions.
+\subsection[stuff]{Stuffing}
 
-\subsection[i:crc]{CRC Computation}
+To prevent the occurrence of the termination byte (\texttt{0x00}) within the packet, which would lead to framing errors, the protocol employs \textbf{COBS (Consistent Overhead Byte Stuffing)}. This stuffing is applied to all fields except the termination byte itself.
 
-The generator polynomial used by the protocol is \href{https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-opensafety-b}{CRC-16/OPENSAFETY-B}, or \texttt{0xbaad} in Koopman's notation. The maximum packet length (excluding the CRC and termination bytes) is 255 + 11 = 266 bytes or 2128 bits. According to \href{https://users.ece.cmu.edu/~koopman/crc/c16/0xbaad_len.txt}{Koopman's research}, this polynomial can protect 7985 bits at a Hamming distance of 4 and 108 bits (equivalent to 2 bytes of payload data) at a Hamming distance of 5, with negligible protected lengths for higher Hamming distances. This is deemed sufficient for this protocol. The parameters of this polynomial are:
+A full explanation of COBS is beyond the scope of this specification -- if necessary, refer to the literature on the subject. In short, COBS works by replacing every null byte with the \textit{distance} to the next null byte -- this also includes prepending a byte indicating the distance to the first null byte. Furthermore, if the distance to the next null byte is larger than 255 (the maximum value of a single byte), then a distance of 255 will be indicated, and the 255$^{th}$ byte will then indicate the distance to the next null byte (which can again be 255). Not only is this process remarkably simple, it also guarantees \textit{consistent overhead}, i.e., the best-case, average-case and worst-case overheads are quite similar. The worst-case overhead is
+$$\left\lceil \frac{N}{254} \right\rceil\,,$$
+where $N$ is the length of the input.
 
-\begin{itemize}
-  \item \textit{width}: \texttt{16}
-  \item \textit{poly}: \texttt{0x755b}
-  \item \textit{init}: \texttt{0x0000}
-  \item \textit{refin}: \texttt{false}
-  \item \textit{refout}: \texttt{false}
-  \item \textit{xorout}: \texttt{0x0000}
-  \item \textit{check}: \texttt{0x20fe}
-  \item \textit{residue}: \texttt{0x0000}
-\end{itemize}
+\subsection[enc-impl]{Implementation details}
+\Cref{listing:enc-pseudo} presents an encoding procedure in pseudo-code, to serve as a reference for implementations. The procedure should be part of the public API of the implementation, taking in an instance of a packet (according to the representation presented in \cref{s:repr}), and possibly a buffer. It should return a buffer (or a view into one) containing the encoded packet, possibly wrapped in a result type if any operations it performs are fallible. For implementations in object-oriented languages, it is recommended this method is a member of the representation object type.
 
-\subsection[i:cobs]{COBS}
-Reference implementations of the COBS algorithm should be used whenever possible. Otherwise, refer to the literature for details on the stuffing and unstuffing process. The packet data should be stuffed to remove the termination byte, that is, \texttt{0x00}.
+\begin{algorithm}[h]
+  \caption{Encoding Procedure}\label{listing:enc-pseudo}
+  \begin{algorithmic}
+    \Procedure{encode}{\t packet:Packet;}
+    \State $\textit{buffer} \gets []$
+    \State write $\textit{packet} \acc \textit{version}$ to \textit{buffer}
+    \State write (length of $\textit{packet} \acc \textit{payload}$) to \textit{buffer}
+    \State $\textit{control} \gets \left(\textit{packet} \acc \textit{deviceId} \ll 2\right)$
+    \If{$\textit{packet} \acc \textit{kind}$ is TC}
+    \State $\textit{control} \gets \textit{control} \mathbin{|} \texttt{0b10000000}$
+    \EndIf
+    \State write \textit{control} to \textit{buffer}
+    \State write (little-endian bytes of $\textit{packet} \acc \textit{timestamp}$) to \textit{buffer}
+    \State write $\textit{packet} \acc \textit{payload}$ to \textit{buffer}
+    \State write (compute CRC of \textit{buffer}) to \textit{buffer}
+    \State stuff \textit{buffer}
+    \State \Return \textit{buffer}
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+\section[dec]{Decoding}
+
+Decoding is the process converse to encoding. Decoding can be thought of as the operation of converting a stream of bytes into one or more valid packets. This encompasses three core steps: \textbf{separating} the stream into individual packets, \textbf{reconstructing} a packet from the raw bytes and \textbf{validating} it. The first step is to be handled separately from the other two, since it represents a logically separate task.
+
+\subsection[dec:single]{Single Packet Decoding}
+Decoding a single packet is a somewhat straightforward task. It mostly consists of performing the encoding process \textit{backwards}. However, validity checks are interleaved, so that ill-formed packets are discarded.
+
+Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 13 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 13. To avoid integer underflow errors, implementations may first check that the packet is at least 13 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID and the packet kind. The timestamp is reconstructed from bytes 4 through 11, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
+
+\begin{algorithm}[h]
+  \caption{Single packet decoding procedure}\label{listing:dec-single}
+  \begin{algorithmic}
+    \Procedure{decode}{\t buffer:uint8;}
+    \State unstuff \textit{buffer}
+    \State $\textit{version} \gets \textit{buffer}[0]$
+    \If{$\textit{buffer}[0]$ is not equal to \textit{protocol version}}
+    \State \Return invalid packet
+    \EndIf
+    \State $\textit{crc} \gets (\textrm{get CRC from }\textit{buffer})$
+    \If{\textit{crc} is not equal to (compute CRC of \textit{buffer})}
+    \State \Return invalid packet
+    \EndIf
+    \State $\textit{length} \gets \textit{buffer}[1]$
+    \If{\textit{length} is not equal to ($\textrm{length of }\textit{buffer} - 13$)}
+    \State \Return invalid packet
+    \EndIf
+    \State $\textit{kind} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b10000000})$
+    \State $\textit{id} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b01111100}) \gg 2$
+    \State $\textit{timestamp} \gets \textit{buffer}[3 \mathbin{\textrm{through}} 10]$
+    \State $\textit{payload} \gets \textit{buffer}[11 \mathbin{\textrm{through}} \textit{length} - 2]$
+    \State \Return Packet\,\{\textit{version}, \textit{kind}, \textit{id}, \textit{timestamp}, \textit{payload}\}
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+Single packet decoding must be exposed through a top-level API -- either as a standalone function which consumes a buffer and returns a packet or, in object oriented languages, as a constructor of the packet type. In either case, the operation is fallible.
+
+\subsection[dec:framing]{Framing}
+To properly decode a complete stream, it is necessary to identify packet boundaries, i.e, to frame the packets. This is achieved by splitting the incoming byte stream at the termination byte, thus obtaining a set of byte sequences corresponding to single packets. There is, however, a catch: the last such sequence might be incomplete, in the event that not all bytes of the latest packet have yet been received (as exemplified in \cref{fig:trailing-bytes}). These \textit{trailing bytes} can only be decoded once the packet is complete, so they need to be temporarily stored. This storage can be controlled either by the end user or by the implementation, resulting in the \textit{stateless} and \textit{stateful} methods described below. Note that both must internally invoke the single packet decoding routine. An implementation must provide both methods as part of its top-level API.
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}[yscale=-1]
+    \draw (0,0) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw (2,0) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw (3,0) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw (5,0) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw (6,0) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw[->] (4,1) -- ++(0,1) node [midway,fill=white] {framing};
+    \draw (0,2) rectangle ++(2,1) node [midway] {packet};
+    \draw (3,2) rectangle ++(2,1) node [midway] {packet};
+    \draw (6,2) rectangle ++(2,1) node [midway,align=center] {\textit{trailing}\\\textit{bytes}};
+    \draw[->] (7,3) -- (1,4) node [midway,fill=white] {more bytes received};
+    \draw (0,4) rectangle ++(2,1) node [midway,align=center] {\textit{trailing}\\\textit{bytes}};
+    \draw (2,4) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw (3,4) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw[->] (5,4.5) -- ++(1,0) node [right,align=left] {\textit{trailing bytes}\\were a \textbf{complete} packet};
+    \node[right] at (0,5.5) {\textbf{or}};
+    \draw (0,6) rectangle ++(2,1) node [midway,align=center] {\textit{trailing}\\\textit{bytes}};
+    \draw (2,6) rectangle ++(2,1) node [midway] {$\cdots$};
+    \draw (4,6) rectangle ++(1,1) node [midway] {\texttt{0x00}};
+    \draw[->] (5,6.5) -- ++(1,0) node [right,align=left] {\textit{trailing bytes}\\were an \textbf{incomplete} packet};
+  \end{tikzpicture}
+  \caption{Trailing bytes}\label{fig:trailing-bytes}
+\end{figure}
+
+\subsubsection[dec:stateless]{Stateless Framing}
+Stateless framing, as the name implies, doesn't keep track of any internal state: all decoding calls are independent and idempotent, and trailing bytes have to be managed by the end user. Thus, a decoding call receives a buffer, extracts all complete packets from it (regardless of their validity) and returns the trailing bytes. It is then up to the end user to prepend these trailing bytes to the received bytes before the next decoding call. \Cref{listing:dec-stateless} outlines the control flow of this approach.
+
+\begin{algorithm}[h]
+  \caption{Control Flow of Stateless Framing}\label{listing:dec-stateless}
+  \begin{algorithmic}
+    \State initialise \textit{buffer}, \textit{trailing}
+    \While{read incoming bytes into \textit{buffer}}
+    \State $\textit{packets}, \textit{trailing} \gets \textrm{stateless decode (\textit{trailing} + \textit{buffer})}$
+    \ForAll{\textit{packet} in \textit{packets}}
+    \State handle \textit{packet}
+    \EndFor
+    \EndWhile
+  \end{algorithmic}
+\end{algorithm}
+
+\subsubsection[dec:stateful]{Stateful Framing}
+Stateful framing internally keeps track of trailing bytes, through a dedicated object. This object exposes a push-pop interface: it can be \textit{fed} incoming bytes and \textit{polled} for decoded packets, which it returns one at a time. Note that byte sequences are only processed when a packet is required. \Cref{listing:dec-stateful} outlines the control flow of this approach. Clearly, using this approach is much simpler in terms of control flow. However, it takes memory control away from the end user, which might be undesirable.
+
+\begin{algorithm}[h]
+  \caption{Control Flow of Stateful Framing}\label{listing:dec-stateful}
+  \begin{algorithmic}
+    \State initialise \textit{decoder}
+    \While{read incoming bytes into \textit{decoder}}
+    \While{get \textit{packet} from \textit{decoder}}
+    \State handle \textit{packet}
+    \EndWhile
+    \EndWhile
+  \end{algorithmic}
+\end{algorithm}
 
 \end{document}
