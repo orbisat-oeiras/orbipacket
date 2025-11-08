@@ -400,7 +400,7 @@ Stateless framing, as the name implies, doesn't keep track of any internal state
 \end{algorithm}
 
 \subsubsection[dec:stateful]{Stateful Framing}
-Stateful framing internally keeps track of trailing bytes, through a dedicated object. This object exposes a push-pop interface: it can be \textit{fed} incoming bytes and \textit{polled} for decoded packets, which it returns one at a time. Note that byte sequences are only processed when a packed is required. \Cref{listing:dec-stateful} outlines the control flow of this approach. Clearly, using this approach is much simpler in terms of control flow. However, it takes memory control away from the end user, which might be undesirable.
+Stateful framing internally keeps track of trailing bytes, through a dedicated object. This object exposes a push-pop interface: it can be \textit{fed} incoming bytes and \textit{polled} for decoded packets, which it returns one at a time. Note that byte sequences are only processed when a packet is required. \Cref{listing:dec-stateful} outlines the control flow of this approach. Clearly, using this approach is much simpler in terms of control flow. However, it takes memory control away from the end user, which might be undesirable.
 
 \begin{algorithm}[h]
   \caption{Control Flow of Stateful Framing}\label{listing:dec-stateful}
