@@ -194,7 +194,8 @@ Encodes metadata about the packet kind and device identifier. The following fiel
 
 \subsubsection[f:timestamp]{Timestamp}
 \fieldsize{8 bytes}\\[8pt]
-Represents the time since the Unix epoch in nanoseconds as a 64-bit unsigned integer.
+% TODO: reduce the number of bytes of the timestamps (which is a breaking change)
+Represents the time since CanSat boot in microseconds as a 64-bit unsigned integer.
 
 
 \subsection[f:payload]{Payload}
