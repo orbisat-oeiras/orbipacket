@@ -415,4 +415,32 @@ Stateful framing internally keeps track of trailing bytes, through a dedicated o
   \end{algorithmic}
 \end{algorithm}
 
+\section[sync]{Synchronization}
+
+\subsection[sync:time]{Timestamp Synchronization}
+For accurate testing, logging and reporting, it is of utmost importance to now the absolute timestamp associated with a packet (e.g., in UTC). However, the microcontrollers typically used in CanSat devices are usually incapable of keeping track of such timestamps, so that only the time since boot (or program startup) is available. Thus, it becomes necessary to synchronize such timestamps to a real time clock, usually provided by the groundstation's system clock. As a result, the timestamps of all packets -- both those sent by the CanSat and, for consistency and monotonicity, those sent by the groundstation -- are measured in microseconds since CanSat startup, and a synchronization algorithm based on the Simple Network Time Protocol (SNTP) is employed in the groundstation to recover absolute times from  these timestamps. \Cref{fig:time-exchange} outlines the packet exchange that happens when a groundstation first connects to a CanSat.
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}[yscale=-1]
+    \node[draw] (G) at (0,0) {Groundstation};
+    \node[draw] (C) at (5,0) {CanSat};
+
+    \draw[->] (G.south) -- ++(0,4);
+    \draw[->] (C.south) -- ++(0,4);
+
+    \draw[->] (G.south) ++(0,1) node[left] {$t_0$} -- ++(5,0) node[midway, above] {\texttt{TcPacket}} node[midway, below] {\textit{\small request time synchronization}} node[right] {$t_1$};
+
+    \draw[->] (C.south) ++(0,3) node[right] {$t_2$} -- ++(-5,0) node[midway, above] {\texttt{TmPacket}} node[midway, below] {\textit{\small response}} node[left] {$t_3$};
+  \end{tikzpicture}
+  \caption{Time synchronization packet exchange.}\label{fig:time-exchange}
+\end{figure}
+
+Firstly, the groundstation sends a packet to the CanSat, with a payload containing the timestamp registered when constructing the packet, which called the original timestamp ($t_0$). The CanSat receives the packet and registers its own timestamp - the receiving timestamp (t1). Then it creates a response packet, in which it sends the original timestamp, the receiving timestamp and a transmitting timestamp (t2) - measured when creating the packet. Finally, the groundstation receives this response and registers its timestamp as the destination timestamp (t3). The offset between the two clocks is calculated according to \cref{eq:sntp-offset}. For all further communications, the groundstation should add this offset to the timestamps it sends to the CanSat, and subtract it from the timestamps it receives.
+% TODO: mention some sort of Time device id
+
+\begin{equation}\label{eq:sntp-offset}
+  \textrm{offset} = \frac{\left( t_1 - t_0 \right) + \left( t_2 - t_3 \right)}{2}
+\end{equation}
+
 \end{document}
