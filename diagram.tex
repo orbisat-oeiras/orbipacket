@@ -41,7 +41,7 @@
     \node[below] at (.5,1.25) {1 byte};
     \node[below] at (1.5,1.25) {1 byte};
     \node[below] at (2.5,1.25) {1 byte};
-    \node[below] at (4,1.25) {8 bytes};
+    \node[below] at (4,1.25) {5 bytes};
     \node[below] at (6.5,1.25) {0-255 bytes};
     \node[below] at (8.5,1.25) {2 bytes};
     \node[below] at (9.5,1.25) {1 byte};
@@ -60,8 +60,8 @@
     % Timestamp
     \field[cyan](6,2.5)(2,.5){TIMESTAMP}
     \draw[-Stealth] (7,3) |- ++(.5,.5) node[right,align=left,text width=3cm] {Time since Unix Epoch};
-    \draw[-Stealth] (7,3) |- ++(.5,1) node[right,align=left,text width=3cm] {In nanoseconds};
-    \draw[-Stealth] (7,3) |- ++(.5,1.5) node[right,align=left,text width=3cm] {64-bit unsigned integer};
+    \draw[-Stealth] (7,3) |- ++(.5,1) node[right,align=left,text width=3cm] {In microseconds};
+    \draw[-Stealth] (7,3) |- ++(.5,1.5) node[right,align=left,text width=3cm] {40-bit unsigned integer};
     % Crc
     \field[green](6,5)(1,1){CRC}
     \draw[-Stealth] (7,5.5) -- ++(.5,0) node[right,align=left]{CRC-16/OPENSAFETY-B};

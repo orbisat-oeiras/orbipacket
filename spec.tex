@@ -151,7 +151,7 @@ A packet is made up of several \textit{fields}. \Cref{table:struct} shows an ove
     Version          & 1            \\
     Length           & 1            \\
     Control          & 1            \\
-    Timestamp        & 8            \\
+    Timestamp        & 5            \\
     Payload          & 0-255        \\
     CRC              & 2            \\
     Termination Byte & 1            \\
@@ -193,9 +193,9 @@ Encodes metadata about the packet kind and device identifier. The following fiel
 
 
 \subsubsection[f:timestamp]{Timestamp}
-\fieldsize{8 bytes}\\[8pt]
+\fieldsize{5 bytes}\\[8pt]
 % TODO: reduce the number of bytes of the timestamps (which is a breaking change)
-Represents the time since CanSat boot in microseconds as a 64-bit unsigned integer.
+Represents the time since CanSat boot in microseconds as a 40-bit unsigned integer. The maximum representable timestamp is 1099511627776 microseconds, which corresponds to approximately 12.7 days -- more than enough for typical CanSat operation times.
 
 
 \subsection[f:payload]{Payload}
@@ -235,7 +235,7 @@ Inserted at the end of every packet to frame it, i.e, delimit it from adjacent p
 \subsection[repr]{Representation}
 In their unencoded form, packets should be represented by a high-level construct. The specifics of this will invariably depend on the concrete language. Nonetheless, the recommended way of representing packets is through the use of a custom data type or object.
 
-In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Notice the CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
+In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Note that the timestamp is stored as an unsigned 64-bit integer -- when creating a packet from user data, it must be checked that the value doesn't surpass the 40-bit limit imposed by the protocol. The CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
 
 \begin{algorithm}[h]
   \caption{Packet Representation}\label{listing:struct}
@@ -278,13 +278,13 @@ The third option, and the one currently chosen by OrbiPacket, is to store the ra
 
 \subsection[overhead]{Packet Overhead}
 
-The fixed fields (header and CRC) result in a total, unstuffed overhead of 13 bytes, so packet sizes range from 13 to 268 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 15 or 16 bytes per packet.
+The fixed fields (header and CRC) result in a total, unstuffed overhead of 10 bytes, so packet sizes range from 10 to 265 bytes, depending on payload length. COBS stuffing has a maximum overhead of 1 byte per 254 bytes of unstuffed data. Thus, accounting for the termination byte, the maximum overhead is 12 or 13 bytes per packet.
 
 \section[enc]{Encoding}
 
 Encoding a packet is the process of converting it into a stream of bytes. This stream of bytes is written into a buffer (byte array), either provided by the end-user or managed by the implementation.
 
-Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind and the device ID, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first. As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
+Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind and the device ID, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first, discarding the extra three bytes (required for a 64-bit integer but unused by the protocol). As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
 
 \subsection[stuff]{Stuffing}
 
@@ -325,7 +325,7 @@ Decoding is the process converse to encoding. Decoding can be thought of as the 
 \subsection[dec:single]{Single Packet Decoding}
 Decoding a single packet is a somewhat straightforward task. It mostly consists of performing the encoding process \textit{backwards}. However, validity checks are interleaved, so that ill-formed packets are discarded.
 
-Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 13 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 13. To avoid integer underflow errors, implementations may first check that the packet is at least 13 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID and the packet kind. The timestamp is reconstructed from bytes 4 through 11, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
+Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 10 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 10. To avoid integer underflow errors, implementations may first check that the packet is at least 10 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID and the packet kind. The timestamp is reconstructed from bytes 4 through 8, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
 
 \begin{algorithm}[h]
   \caption{Single packet decoding procedure}\label{listing:dec-single}
@@ -341,13 +341,13 @@ Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the versi
     \State \Return invalid packet
     \EndIf
     \State $\textit{length} \gets \textit{buffer}[1]$
-    \If{\textit{length} is not equal to ($\textrm{length of }\textit{buffer} - 13$)}
+    \If{\textit{length} is not equal to ($\textrm{length of }\textit{buffer} - 10$)}
     \State \Return invalid packet
     \EndIf
     \State $\textit{kind} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b10000000})$
     \State $\textit{id} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b01111100}) \gg 2$
-    \State $\textit{timestamp} \gets \textit{buffer}[3 \mathbin{\textrm{through}} 10]$
-    \State $\textit{payload} \gets \textit{buffer}[11 \mathbin{\textrm{through}} \textit{length} - 2]$
+    \State $\textit{timestamp} \gets \textit{buffer}[3 \mathbin{\textrm{through}} 7]$
+    \State $\textit{payload} \gets \textit{buffer}[8 \mathbin{\textrm{through}} \textit{length} - 2]$
     \State \Return Packet\,\{\textit{version}, \textit{kind}, \textit{id}, \textit{timestamp}, \textit{payload}\}
     \EndProcedure
   \end{algorithmic}
