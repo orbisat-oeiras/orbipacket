@@ -328,7 +328,7 @@ Decoding is the process converse to encoding. Decoding can be thought of as the 
 \subsection[dec:single]{Single Packet Decoding}
 Decoding a single packet is a somewhat straightforward task. It mostly consists of performing the encoding process \textit{backwards}. However, validity checks are interleaved, so that ill-formed packets are discarded.
 
-Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 10 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 10. To avoid integer underflow errors, implementations may first check that the packet is at least 10 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID and the packet kind. The timestamp is reconstructed from bytes 4 through 8, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
+Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 10 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 10. To avoid integer underflow errors, implementations may first check that the packet is at least 10 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID, the packet kind, and the groundstation number. The timestamp is reconstructed from bytes 4 through 8, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
 
 \begin{algorithm}[h]
   \caption{Single packet decoding procedure}\label{listing:dec-single}
@@ -349,9 +349,10 @@ Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the versi
     \EndIf
     \State $\textit{kind} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b10000000})$
     \State $\textit{id} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b01111100}) \gg 2$
+    \State $\textit{groundstationNumber} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b00000011})$
     \State $\textit{timestamp} \gets \textit{buffer}[3 \mathbin{\textrm{through}} 7]$
     \State $\textit{payload} \gets \textit{buffer}[8 \mathbin{\textrm{through}} \textit{length} - 2]$
-    \State \Return Packet\,\{\textit{version}, \textit{kind}, \textit{id}, \textit{timestamp}, \textit{payload}\}
+    \State \Return Packet\,\{\textit{version}, \textit{kind}, \textit{id}, \textit{groundstationNumber}, \textit{timestamp}, \textit{payload}\}
     \EndProcedure
   \end{algorithmic}
 \end{algorithm}
