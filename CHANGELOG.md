@@ -5,9 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-07-18
 
 ### Added
+- Add time synchronization
+- Add a diagram to explain trailing bytes
+- Add section Decoding
+- Add section Encoding
+- Add subsection 'Payload Storage'
+- Add subsection 'Representation'
+- Add note on interpretation to s:f:control
+- Add section 'Protocol Overview'
+- Add footnote explaining what a CanSat is
+- Add labels to all sections
+- Add admonition boxes
 - Add changelog (via git-cliff)
 - Add link to the compiled spec to the README
 - Ops: add branch latex-rewrite to deploy.yml's push trigger
@@ -20,45 +31,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add LaTeX build artifacts to .gitignore
 
 ### Changed
-- Merge pull request #1 from orbisat-oeiras/latex-rewrite
+- Merge pull request #10 from orbisat-oeiras/smaller-timestamp in [#10](https://github.com/orbisat-oeiras/orbipacket/pull/10)
+- Change size of timestamps from 8 to 5 bytes
+- Merge pull request #9 from orbisat-oeiras/new-time-sync in [#9](https://github.com/orbisat-oeiras/orbipacket/pull/9)
+- Change precision and reference point of timestamps
+- Merge pull request #8 from orbisat-oeiras/spec-work in [#8](https://github.com/orbisat-oeiras/orbipacket/pull/8)
+- Move Packet Overhead to a subsection of Packet Structure
+- Reword Representation
+- Refer to TM/TC as packet 'kind' instead of 'type'
+- Capitalise the bit placeholders in the tip about the control byte for better readability
+- Improve the introduction to s:fields
+- Merge pull request #7 from orbisat-oeiras/cleanup-work in [#7](https://github.com/orbisat-oeiras/orbipacket/pull/7)
+- Place information about the reserved bits of the control byte inside a \warnbox
+- Reword the footnote about CanSats
+- Reword the 'Stuffing' section
+- Refer to COBS as stuffing instead of encoding
+- Improve description of termination byte
+- Improve formatting of packet field descriptions
+- Move the diagram to the title page
+- Merge pull request #1 from orbisat-oeiras/latex-rewrite in [#1](https://github.com/orbisat-oeiras/orbipacket/pull/1)
 - Place compiled PDFs in a folder before uploading the artifact
 - Move build action to the right path
 - Convert the spec to LaTeX
 - Convert packet diagram to LaTeX with TikZ
 
 ### Fixed
+- Typos
+- Typo
+- Minor tweaks
+- Correct typo in s:intro
 - Input protocol_version in diagram.tex
 
 ### Removed
+- Remove section Implementation Guidelines
+- Remove subsection CRC Computation and move its contents to subsection CRC (in section Packet Fields)
+- Remove section Example Packet
+- Remove section Packet Operations
+- Remove header from table:struct
+- Remove s:endianness, adding it's contents to the introduction of s:fields
+- Remove redundant information from the description of the CRC field
+- Remove 'Packet Fields' section
+- Remove description column from table:struct
+- Remove date from the title page
 - Remove workflow_call and add workflow_dispatch triggers on build.yml
 
 
 ## [1.2.0] - 2025-04-09
 
 ### Added
-- Added bit order details to the control byte description
+- Added bit order details to the control byte description.
 
 
 ## [1.1.0] - 2025-03-23
 
 ### Added
-- Add endianness details
+- Add endianness details.
 
 
-## 1.0.0 - 2025-03-22
+## [1.0.0] - 2025-03-22
 
 ### Added
-- Added details about the generator polynomial to the CRC field description
-- Added the protocol diagram
-- Added the protocol specification
+- Added details about the generator polynomial to yhe CRC field description.
+- Added the protocol diagram.
+- Added the protocol specification.
 
 ### Changed
-- Corrected heading levels in the spec
+- Corrected heading levels in the spec.
+- Initial commit.
 
 ### Removed
-- Removed style block from the spec file
+- Removed style block from the spec file.
 
 
+[2.0.0]: https://github.com/orbisat-oeiras/orbipacket/compare/v1.2.0..v2.0.0
 [1.2.0]: https://github.com/orbisat-oeiras/orbipacket/compare/v1.1.0..v1.2.0
 [1.1.0]: https://github.com/orbisat-oeiras/orbipacket/compare/v1.0.0..v1.1.0
 

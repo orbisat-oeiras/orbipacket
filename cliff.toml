@@ -67,6 +67,8 @@ footer = """
 trim = true
 
 [git]
+# ignore 'year' tags
+ignore_tags = "^\\d{4}$"
 # parse the commits based on https://www.conventionalcommits.org
 conventional_commits = true
 # filter out the commits that are not conventional
