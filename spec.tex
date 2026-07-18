@@ -287,7 +287,7 @@ The fixed fields (header and CRC) result in a total, unstuffed overhead of 10 by
 
 Encoding a packet is the process of converting it into a stream of bytes. This stream of bytes is written into a buffer (byte array), either provided by the end-user or managed by the implementation.
 
-Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind and the device ID, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first, discarding the extra three bytes (required for a 64-bit integer but unused by the protocol). As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
+Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind, the device ID, and the groundstation number, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first, discarding the extra three bytes (required for a 64-bit integer but unused by the protocol). As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
 
 \subsection[stuff]{Stuffing}
 
@@ -307,7 +307,7 @@ where $N$ is the length of the input.
     \State $\textit{buffer} \gets []$
     \State write $\textit{packet} \acc \textit{version}$ to \textit{buffer}
     \State write (length of $\textit{packet} \acc \textit{payload}$) to \textit{buffer}
-    \State $\textit{control} \gets \left(\textit{packet} \acc \textit{deviceId} \ll 2\right)$
+      \State $\textit{control} \gets \left(\textit{packet} \acc \textit{deviceId} \ll 2\right) \mathbin{|} \left(\textit{packet} \acc \textit{groundstationNumber} \right)$
     \If{$\textit{packet} \acc \textit{kind}$ is TC}
     \State $\textit{control} \gets \textit{control} \mathbin{|} \texttt{0b10000000}$
     \EndIf
