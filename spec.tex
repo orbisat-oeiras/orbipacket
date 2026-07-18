@@ -179,16 +179,17 @@ Encodes metadata about the packet kind and device identifier. The following fiel
 \begin{itemize}
   \item \textbf{TM/TC Flag}: 1 bit, where \texttt{0} indicates telemetry and \texttt{1} indicates a telecommand.
   \item \textbf{Device ID}: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
+  \item \textbf{Groundstation Number}: 2 bits, identifying the source groundstation for TC or target groundstation for TM.
 \end{itemize}
-\warnbox{Reserved bits}{
-  The two remaining bits of the control byte are currently unused. Future versions of the protocol may use them to include additional information. They must therefore be ignored -- do not use them to encode application specific data.
-}
 \tipbox{Interpreting the control byte}{
   One can think of the control byte as \textit{saying} the following about the packet:
   \begin{itemize}
-    \item \texttt{0b0DDDDDRR}: TM packet from device \texttt{0bDDDDD} to the groundstation
-    \item \texttt{0b1DDDDDRR}: TC packet from the groundstation to device \texttt{0bDDDDD}
+    \item \texttt{0b0DDDDDNN}: TM packet from device \texttt{0bDDDDD} to the groundstation
+    \item \texttt{0b1DDDDDNN}: TC packet from the groundstation to device \texttt{0bDDDDD}
   \end{itemize}
+}
+\warnbox{Groundstation number}{
+  Each independent groundstation is assigned a number in a non-conflicting manner. Furthermore, since standard telemetry should be received by all groundstations, groundstation number \texttt{0} is designated as a wildcard. Thus, each groundstation should parse only TM packets marked with either its assigned number or number \texttt{0}. When emitting a telecommand, a groundstation must mark it with its assigned number. When responding to a telecommand, the CanSat must mark the emitted TM packet with the same number as the  received TC packet.
 }
 
 
