@@ -179,16 +179,17 @@ Encodes metadata about the packet kind and device identifier. The following fiel
 \begin{itemize}
   \item \textbf{TM/TC Flag}: 1 bit, where \texttt{0} indicates telemetry and \texttt{1} indicates a telecommand.
   \item \textbf{Device ID}: 5 bits, uniquely identifying the source device for TM or target device for TC. Note that device IDs should remain consistent across TM and TC packets.
+  \item \textbf{Groundstation Number}: 2 bits, identifying the source groundstation for TC or target groundstation for TM.
 \end{itemize}
-\warnbox{Reserved bits}{
-  The two remaining bits of the control byte are currently unused. Future versions of the protocol may use them to include additional information. They must therefore be ignored -- do not use them to encode application specific data.
-}
 \tipbox{Interpreting the control byte}{
   One can think of the control byte as \textit{saying} the following about the packet:
   \begin{itemize}
-    \item \texttt{0b0DDDDDRR}: TM packet from device \texttt{0bDDDDD} to the groundstation
-    \item \texttt{0b1DDDDDRR}: TC packet from the groundstation to device \texttt{0bDDDDD}
+    \item \texttt{0b0DDDDDNN}: TM packet from device \texttt{0bDDDDD} to the groundstation
+    \item \texttt{0b1DDDDDNN}: TC packet from the groundstation to device \texttt{0bDDDDD}
   \end{itemize}
+}
+\warnbox{Groundstation number}{
+  Each independent groundstation is assigned a number in a non-conflicting manner. Furthermore, since standard telemetry should be received by all groundstations, groundstation number \texttt{0} is designated as a wildcard. Thus, each groundstation should parse only TM packets marked with either its assigned number or number \texttt{0}. When emitting a telecommand, a groundstation must mark it with its assigned number. When responding to a telecommand, the CanSat must mark the emitted TM packet with the same number as the  received TC packet.
 }
 
 
@@ -235,7 +236,7 @@ Inserted at the end of every packet to frame it, i.e, delimit it from adjacent p
 \subsection[repr]{Representation}
 In their unencoded form, packets should be represented by a high-level construct. The specifics of this will invariably depend on the concrete language. Nonetheless, the recommended way of representing packets is through the use of a custom data type or object.
 
-In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Note that the timestamp is stored as an unsigned 64-bit integer -- when creating a packet from user data, it must be checked that the value doesn't surpass the 40-bit limit imposed by the protocol. The CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
+In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Note that the timestamp is stored as an unsigned 64-bit integer -- when creating a packet from user data, it must be checked that the value doesn't surpass the 40-bit limit imposed by the protocol. Similarly, although the groundstation number is stored in an unsigned 8-bit integer, it musst be ensure that it doesn't surpass the two bit limit. To this end, it is recommended, if possible, to use an enumeration type. The CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
 
 \begin{algorithm}[h]
   \caption{Packet Representation}\label{listing:struct}
@@ -244,6 +245,7 @@ In the following sections, the pseudo-code data type defined in \cref{listing:st
     \T version:uint8;
     \T kind:TM or TC;
     \T deviceId:uint8;
+    \T groundstationNumber:uint8;
     \T timestamp:uint64;
     \T payload:uint8[];
     \EndStruct
@@ -262,6 +264,7 @@ Perhaps the most obvious solution for many would be the use of a generic type (o
     \T version:uint8;
     \T kind:TM or TC;
     \T deviceId:uint8;
+    \T groundstationNumber:uint8;
     \T timestamp:uint64;
     \T payload:P;
     \EndStruct
@@ -284,7 +287,7 @@ The fixed fields (header and CRC) result in a total, unstuffed overhead of 10 by
 
 Encoding a packet is the process of converting it into a stream of bytes. This stream of bytes is written into a buffer (byte array), either provided by the end-user or managed by the implementation.
 
-Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind and the device ID, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first, discarding the extra three bytes (required for a 64-bit integer but unused by the protocol). As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
+Firstly, the packet's header fields are written to the buffer in order. The control byte is constructed from the packet kind, the device ID, and the groundstation number, using appropriate bitwise operations. The timestamp is written in little-endian, i.e., least-significant byte first, discarding the extra three bytes (required for a 64-bit integer but unused by the protocol). As previously discussed, payloads are stored as a byte array, which is simply copied to the buffer. Then, a CRC is computed over the buffer. The resulting 2 bytes are appended to the buffer, in little-endian. The buffer is then stuffed -- see \cref{s:stuff}, and finally a termination byte is appended.
 
 \subsection[stuff]{Stuffing}
 
@@ -304,7 +307,7 @@ where $N$ is the length of the input.
     \State $\textit{buffer} \gets []$
     \State write $\textit{packet} \acc \textit{version}$ to \textit{buffer}
     \State write (length of $\textit{packet} \acc \textit{payload}$) to \textit{buffer}
-    \State $\textit{control} \gets \left(\textit{packet} \acc \textit{deviceId} \ll 2\right)$
+      \State $\textit{control} \gets \left(\textit{packet} \acc \textit{deviceId} \ll 2\right) \mathbin{|} \left(\textit{packet} \acc \textit{groundstationNumber} \right)$
     \If{$\textit{packet} \acc \textit{kind}$ is TC}
     \State $\textit{control} \gets \textit{control} \mathbin{|} \texttt{0b10000000}$
     \EndIf
@@ -325,7 +328,7 @@ Decoding is the process converse to encoding. Decoding can be thought of as the 
 \subsection[dec:single]{Single Packet Decoding}
 Decoding a single packet is a somewhat straightforward task. It mostly consists of performing the encoding process \textit{backwards}. However, validity checks are interleaved, so that ill-formed packets are discarded.
 
-Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 10 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 10. To avoid integer underflow errors, implementations may first check that the packet is at least 10 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID and the packet kind. The timestamp is reconstructed from bytes 4 through 8, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
+Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the version byte can be compared against the implementation's version. Then, the CRC checksum is reconstructed from the last two bytes and compared to the checksum computed over the remainder of the buffer. If they are different, the packet is considered invalid. The last item to be checked is the packet length. Since packets have 10 bytes of overhead -- see \cref{s:overhead} -- it suffices to check that the buffer's second byte equals its length minus 10. To avoid integer underflow errors, implementations may first check that the packet is at least 10 bytes long. If either check fails, the packet is considered invalid. The last step is to parse the remaining packet fields. The third byte is analysed to retrieve both the device ID, the packet kind, and the groundstation number. The timestamp is reconstructed from bytes 4 through 8, and all remaining bytes constitute the payload. \Cref{listing:dec-single} outlines this procedure.
 
 \begin{algorithm}[h]
   \caption{Single packet decoding procedure}\label{listing:dec-single}
@@ -346,9 +349,10 @@ Firstly, the incoming bytes must be unstuffed using COBS. Immediately, the versi
     \EndIf
     \State $\textit{kind} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b10000000})$
     \State $\textit{id} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b01111100}) \gg 2$
+    \State $\textit{groundstationNumber} \gets (\textit{buffer}[2] \mathbin{\&} \texttt{0b00000011})$
     \State $\textit{timestamp} \gets \textit{buffer}[3 \mathbin{\textrm{through}} 7]$
     \State $\textit{payload} \gets \textit{buffer}[8 \mathbin{\textrm{through}} \textit{length} - 2]$
-    \State \Return Packet\,\{\textit{version}, \textit{kind}, \textit{id}, \textit{timestamp}, \textit{payload}\}
+    \State \Return Packet\,\{\textit{version}, \textit{kind}, \textit{id}, \textit{groundstationNumber}, \textit{timestamp}, \textit{payload}\}
     \EndProcedure
   \end{algorithmic}
 \end{algorithm}
