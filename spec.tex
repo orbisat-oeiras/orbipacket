@@ -236,7 +236,7 @@ Inserted at the end of every packet to frame it, i.e, delimit it from adjacent p
 \subsection[repr]{Representation}
 In their unencoded form, packets should be represented by a high-level construct. The specifics of this will invariably depend on the concrete language. Nonetheless, the recommended way of representing packets is through the use of a custom data type or object.
 
-In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Note that the timestamp is stored as an unsigned 64-bit integer -- when creating a packet from user data, it must be checked that the value doesn't surpass the 40-bit limit imposed by the protocol. The CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
+In the following sections, the pseudo-code data type defined in \cref{listing:struct} will be used. Note that the timestamp is stored as an unsigned 64-bit integer -- when creating a packet from user data, it must be checked that the value doesn't surpass the 40-bit limit imposed by the protocol. Similarly, although the groundstation number is stored in an unsigned 8-bit integer, it musst be ensure that it doesn't surpass the two bit limit. To this end, it is recommended, if possible, to use an enumeration type. The CRC field isn't included in the representation, since it is not part of the packet's information, and should only exist in the encoded form. For simplicity, the length field isn't included, under the assumption that is can be retrieved from the array holding the payload. If such is not possible or practical due to language-specific constraints, it should be included in the packet representation.
 
 \begin{algorithm}[h]
   \caption{Packet Representation}\label{listing:struct}
@@ -245,6 +245,7 @@ In the following sections, the pseudo-code data type defined in \cref{listing:st
     \T version:uint8;
     \T kind:TM or TC;
     \T deviceId:uint8;
+    \T groundstationNumber:uint8;
     \T timestamp:uint64;
     \T payload:uint8[];
     \EndStruct
@@ -263,6 +264,7 @@ Perhaps the most obvious solution for many would be the use of a generic type (o
     \T version:uint8;
     \T kind:TM or TC;
     \T deviceId:uint8;
+    \T groundstationNumber:uint8;
     \T timestamp:uint64;
     \T payload:P;
     \EndStruct
